@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Every Monday: catches new blog posts that the parser cannot round-trip.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: pablogarcor/js-pablogarcor-web
+          path: blog
+      - run: node --version
+      - run: node --test
+        env:
+          BLOG_DIR: blog
