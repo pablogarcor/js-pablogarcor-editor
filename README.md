@@ -17,7 +17,8 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Vista (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
 | Edición de texto: escribir, Enter, Backspace/Supr, deshacer, selección entre bloques | Hecho; los comandos y el mapeo de la selección se testean en Node, el resto con `docs/pruebas-manuales.md` |
 | Barra de herramientas: negrita, cursiva, código, enlaces, tipo de bloque, insertar y eliminar bloques | Hecho; los comandos se testean en Node |
-| Metadatos, imágenes nuevas | **Pendiente** |
+| Metadatos: título, idioma, fecha, slug, translationKey, etiquetas, descripción, con las comprobaciones de `validatePost` en vivo | Hecho; las reglas se testean en Node |
+| Imágenes nuevas, pegar HTML | **Pendiente** |
 | Borradores locales (IndexedDB) | **Pendiente** |
 
 ## Estructura
@@ -53,6 +54,7 @@ src/
     ├── selection.js  Puntos del DOM ⇄ posiciones del modelo.
     ├── editor.js     La superficie editable: eventos → comandos → repintado.
     ├── toolbar.js    Barra de herramientas y panel de enlaces.
+    ├── meta-form.js  Formulario del front matter y avisos de validatePost.
     ├── app.js        Arranque de la página, abrir y nuevo post.
     └── editor.css
 index.html          La página del editor.
@@ -88,6 +90,18 @@ node serve.js
 Abre http://localhost:8000 y pulsa **Abrir post…**. Elige un `index.md` de tu copia del blog y, si quieres ver sus imágenes, selecciónalas en el mismo diálogo. Las imágenes se muestran desde tu disco con URLs `blob:`; no se sube nada. Otro puerto: `PORT=9000 node serve.js`.
 
 También puedes empezar un **Nuevo post**. Se puede editar el texto, pero todavía no se guarda nada: el panel **Markdown**, al final de la página, muestra en vivo lo que se escribiría. La barra de estado dice cuántos bloques tiene el post, cuántos se quedan como Markdown sin editar y si hay cambios respecto al fichero abierto.
+
+### Datos del post
+
+Encima del texto está el formulario del front matter. En un post nuevo:
+- el slug sigue al título (con `slugify`) hasta que lo escribes a mano, y el translationKey sigue al slug; si vacías el campo, vuelve a seguirlo;
+- la fecha es la de hoy en Europe/Madrid y el autor es fijo;
+- las etiquetas se escriben separadas por comas y se guardan como lista, sin repetidas;
+- la descripción cuenta caracteres hasta 160.
+
+En un post abierto, el slug y el translationKey no se pueden cambiar: el slug es la URL publicada. Editar un campo reescribe solo su línea del front matter.
+
+Debajo se listan en vivo los errores y avisos de `validatePost`: lo que impedirá publicar y lo que conviene revisar. Los cambios del formulario se deshacen con Ctrl+Z como los del texto.
 
 ### Cómo funciona la edición
 
@@ -192,7 +206,6 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 
 ## Siguiente fase
 
-- Panel de metadatos para posts nuevos: título, fecha, slug, etiquetas, descripción.
 - Pegar HTML o texto convirtiéndolo a bloques.
 - Arrastrar imágenes, que pasan por `media/webp.js`.
 - `src/storage/drafts.js`: borradores en IndexedDB.

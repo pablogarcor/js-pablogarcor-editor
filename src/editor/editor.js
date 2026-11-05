@@ -465,6 +465,17 @@ export function createEditor(root, { imageUrl, onChange = () => {}, onSelectionC
       const result = exec((doc, sel) => format.insertBlockAfter(doc, sel, block));
       if (result && kind === 'code') blockElement(block.id)?.querySelector('textarea')?.focus();
     },
+    /**
+     * Changes the document from outside the text (the metadata form) without
+     * moving the caret. Consecutive changes with the same group are one undo
+     * step.
+     * @param {(doc: Doc) => Doc} change
+     * @param {string} group
+     */
+    transform(change, group) {
+      const sel = valid(lastSelection);
+      apply({ doc: change(history.present.doc), selection: sel }, sel, { group, select: false });
+    },
     /** Gives the focus back to the text, where it was. */
     restoreFocus() {
       root.focus();

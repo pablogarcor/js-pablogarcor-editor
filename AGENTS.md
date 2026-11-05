@@ -40,6 +40,9 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - Blocks that are not text are edited through form controls
   (`data-control`); editor.js ignores keyboard and input events coming from
   them, except their `input` event, which updates the model.
+- `src/editor/meta-form.js`: shows and reports front matter edits only. The
+  rules (slug from title, tags as a list, what may change in a published
+  post) live in `src/hugo/post.js` (`metaEdit`, `parseTags`, `validatePost`).
 - `src/editor/dom.js`: the only view code that touches the DOM. Post content
   goes in as text nodes and attributes, never through `innerHTML`.
 - `serve.js`: local server, 127.0.0.1 only, serves `index.html` and `src/`

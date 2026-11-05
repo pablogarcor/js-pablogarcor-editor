@@ -67,6 +67,16 @@ Arranca con `node serve.js`, abre http://localhost:8000 y despliega el panel **M
 - [ ] El botón × elimina imágenes, separadores, bloques de código y bloques sin editar. Ctrl+Z los recupera.
 - [ ] Los botones ↶ ↷ deshacen y rehacen, y se desactivan cuando no hay nada que deshacer o rehacer.
 
+## Datos del post
+
+- [ ] **Nuevo post**: el foco está en el título, la fecha es la de hoy y la lista de avisos dice que falta el título y que el post está vacío.
+- [ ] Escribe un título con tildes y signos (`¿Qué es Hugo?`): el slug y el translationKey se rellenan solos (`que-es-hugo`).
+- [ ] Escribe el slug a mano: deja de seguir al título; el translationKey sigue al slug. Vacía el slug: vuelve a seguir al título.
+- [ ] Etiquetas `a, b, A,`: mientras escribes no se borra la coma; al salir del campo quedan `a, b`.
+- [ ] La descripción muestra el contador y se pone en rojo pasados 160 caracteres (aviso en la lista).
+- [ ] Ctrl+Z en el texto deshace también los cambios del formulario, y los campos se actualizan.
+- [ ] Abre un post publicado: slug y translationKey son de solo lectura y no aparece el idioma. Cambia el título: en el panel Markdown solo cambia la línea `title:`.
+
 ## Resto
 
 - [ ] **Nuevo post** con cambios pendientes pregunta antes de descartarlos.
