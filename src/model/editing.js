@@ -35,6 +35,19 @@ export function isTextBlock(block) {
   return block.type === 'paragraph' || block.type === 'heading' || block.type === 'quote' || block.type === 'list';
 }
 
+/**
+ * A document the caret can reach everywhere it needs to: when it does not end
+ * in a text block (a post ending in an image, or an empty one), an empty
+ * paragraph is added at the end to keep writing. An empty paragraph writes
+ * no Markdown, so the file does not change.
+ * @param {Doc} doc
+ * @returns {Doc}
+ */
+export function ensureEditable(doc) {
+  const last = doc.blocks[doc.blocks.length - 1];
+  return last && isTextBlock(last) ? doc : insertBlock(doc, doc.blocks.length, make.paragraph());
+}
+
 /** @param {Pos} pos @returns {Selection} */
 export function caret(pos) {
   return { anchor: pos, focus: pos };

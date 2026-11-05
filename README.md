@@ -19,7 +19,7 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Barra de herramientas: negrita, cursiva, código, enlaces, tipo de bloque, insertar y eliminar bloques | Hecho; los comandos se testean en Node |
 | Metadatos: título, idioma, fecha, slug, translationKey, etiquetas, descripción, con las comprobaciones de `validatePost` en vivo | Hecho; las reglas se testean en Node |
 | Pegar HTML (webs, Google Docs) convertido en bloques; imágenes nuevas (botón, arrastrar o pegar) convertidas a WebP | Hecho; el conversor HTML y el pegado se testean en Node, la conversión a WebP solo en el navegador |
-| Borradores locales (IndexedDB) | **Pendiente** |
+| Borradores locales (IndexedDB), con imágenes, guardados solos | Hecho; el contenido del borrador se testea en Node, IndexedDB solo en el navegador |
 
 ## Estructura
 
@@ -49,6 +49,10 @@ src/
 │   └── publish.js  Rama + commit con todos los ficheros + PR contra main.
 ├── media/
 │   └── webp.js     Imagen → WebP con OffscreenCanvas.
+├── storage/
+│   ├── draft.js    Qué guarda un borrador y cómo vuelve a ser un post. Sin
+│   │               IndexedDB, se prueba en Node.
+│   └── drafts.js   Borradores en IndexedDB (solo navegador).
 └── editor/         La página.
     ├── view.js       Documento → árbol de objetos planos (vnodes). Sin DOM.
     ├── dom.js        vnodes → elementos.
@@ -56,7 +60,7 @@ src/
     ├── editor.js     La superficie editable: eventos → comandos → repintado.
     ├── toolbar.js    Barra de herramientas y panel de enlaces.
     ├── meta-form.js  Formulario del front matter y avisos de validatePost.
-    ├── app.js        Arranque de la página, abrir y nuevo post.
+    ├── app.js        Arranque de la página: nuevo, abrir, borradores, imágenes.
     └── editor.css
 index.html          La página del editor.
 serve.js            Servidor local, solo para 127.0.0.1.
@@ -104,6 +108,16 @@ En un post abierto, el slug y el translationKey no se pueden cambiar: el slug es
 
 Debajo se listan en vivo los errores y avisos de `validatePost`: lo que impedirá publicar y lo que conviene revisar. Los cambios del formulario se deshacen con Ctrl+Z como los del texto.
 
+### Borradores
+
+Todo lo que escribes se guarda solo, menos de un segundo después de cada cambio, en IndexedDB: el post (como el Markdown que se publicaría), sus datos, el idioma y sus imágenes. La barra de estado dice cuándo se guardó por última vez. Por eso **Nuevo post** y **Abrir post…** ya no preguntan antes de cambiar de post: el anterior queda en **Borradores**.
+
+- La página de inicio lista los borradores; el botón **Borradores** los muestra en cualquier momento. Borrar uno pide dos clics.
+- Un post nuevo vacío no crea borrador. Un post publicado sin cambios tampoco, y si deshaces todos los cambios, su borrador se borra.
+- Al abrir un post del que ya tienes un borrador, la barra de estado lo avisa.
+- No se guarda el historial de deshacer.
+- Los borradores son de este navegador y de este origen: con `PORT=9000 node serve.js` verás otra lista, la de `localhost:9000`.
+
 ### Imágenes
 
 Se añaden con el botón **Imagen…**, arrastrándolas sobre el texto o pegándolas (una captura, por ejemplo). Cada imagen:
@@ -111,7 +125,7 @@ Se añaden con el botón **Imagen…**, arrastrándolas sobre el texto o pegánd
 - recibe un nombre a partir del slug, como hace el blog: `mi-post.webp`, `mi-post-2.webp`…;
 - se inserta después del bloque donde está el cursor o donde se suelta, con el foco en su texto alternativo.
 
-Las imágenes nuevas viven solo en la memoria de la página hasta que se publiquen (fase 7) o se guarden como borrador (fase 6). Al pegar HTML, sus imágenes no se copian: la barra de estado avisa de cuántas se han omitido para que las añadas como imágenes del post.
+Las imágenes nuevas se guardan con el borrador hasta que se publiquen (fase 7). Al pegar HTML, sus imágenes no se copian: la barra de estado avisa de cuántas se han omitido para que las añadas como imágenes del post.
 
 ### Cómo funciona la edición
 
@@ -216,7 +230,6 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 
 ## Siguiente fase
 
-- `src/storage/drafts.js`: borradores en IndexedDB.
 - Pantalla de publicación:
   - muestra los errores y avisos de `validatePost` y `checkIdentity`;
   - llama a `planPublish` y después a `publishFiles`.

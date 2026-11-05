@@ -21,7 +21,7 @@
  *    control does not lose focus.
  */
 
-import { blocks as make, createDocument, findBlock, insertBlock, updateBlock } from '../model/document.js';
+import { blocks as make, createDocument, findBlock, updateBlock } from '../model/document.js';
 import * as edit from '../model/editing.js';
 import * as format from '../model/formatting.js';
 import { htmlToBlocks } from '../model/from-html.js';
@@ -61,14 +61,7 @@ import { renderBlock } from './view.js';
  *   onNotice: something the user should know (images left out of a paste...)
  */
 
-/**
- * A document the caret can go into: one without any text block gets an
- * empty paragraph at the end.
- * @param {Doc} doc
- */
-function editable(doc) {
-  return doc.blocks.some(edit.isTextBlock) ? doc : insertBlock(doc, doc.blocks.length, make.paragraph());
-}
+const editable = edit.ensureEditable;
 
 /** @param {Pos} a @param {Pos} b */
 const samePos = (a, b) => a.block === b.block && a.item === b.item && a.offset === b.offset;
