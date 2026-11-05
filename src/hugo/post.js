@@ -307,3 +307,74 @@ export function planPublish({ doc, lang, existingPaths, path, images = [], lastm
     },
   };
 }
+
+/**
+ * Everything the publish screen needs, before anything is sent: the checks
+ * (validatePost, checkIdentity and a few about the repository) and, when
+ * nothing blocks it, the plan (files, branch, commit, pull request).
+ *
+ * An edited post is found in the repository by its original file, which
+ * also gives its path and language. Only new images the post still uses are
+ * uploaded. Edits get today's lastmod.
+ * @param {{
+ *   doc: Doc,
+ *   lang: string,
+ *   original: string | null,
+ *   images: { name: string, bytes: Uint8Array }[],
+ *   repo: { paths: string[], posts: (PostRef & { source: string })[] },
+ *   today?: string,
+ * }} input
+ *   lang: for a new post; original: the file an edited post was opened from
+ *   (null for a new post); images: the images added in the editor;
+ *   repo: what loadPosts read from main
+ * @returns {Report & { lang: string, path: string | null, plan: ReturnType<typeof planPublish> | null, translationOf: PostRef | null }}
+ */
+export function preparePublish({ doc, lang, original, images, repo, today = todayISO() }) {
+  /** @type {string[]} */
+  const errors = [];
+  /** @type {string[]} */
+  const warnings = [];
+  const fail = () => ({ errors, warnings, lang, path: null, plan: null, translationOf: null });
+
+  /** @type {string | undefined} */
+  let path;
+  let postLang = lang;
+  /** @type {string | undefined} */
+  let publishedSlug;
+  if (original !== null) {
+    const match = repo.posts.find((p) => p.source === original);
+    if (!match) {
+      errors.push('Este post no está en main tal como lo abriste: actualiza tu copia del blog (git pull) y vuelve a abrirlo.');
+      return fail();
+    }
+    path = match.path;
+    postLang = match.lang;
+    publishedSlug = match.slug;
+    if (serializeMarkdown(doc) === original) errors.push('No hay cambios que publicar.');
+  }
+
+  const used = new Set(referencedImages(doc).map((i) => i.src.replace(/^\.\//, '')));
+  const upload = images.filter((i) => used.has(i.name));
+  const unused = images.length - upload.length;
+  if (unused) warnings.push(`${unused === 1 ? 'Una imagen añadida ya no se usa' : `${unused} imágenes añadidas ya no se usan`} y no se subirá${unused === 1 ? '' : 'n'}.`);
+
+  const dir = path ? path.replace(/\/[^/]+$/, '') : null;
+  const inRepo = dir ? repo.paths.filter((p) => p.startsWith(`${dir}/`)).map((p) => p.slice(dir.length + 1)) : [];
+  const checks = validatePost(doc, { images: [...inRepo, ...upload.map((i) => i.name)], publishedSlug });
+  errors.push(...checks.errors);
+  warnings.push(...checks.warnings);
+
+  const meta = metaOf(doc);
+  const identity = checkIdentity(repo.posts, { path, lang: postLang, slug: String(meta.slug ?? ''), translationKey: String(meta.translationKey ?? '') });
+  errors.push(...identity.errors);
+  warnings.push(...identity.warnings);
+
+  if (errors.length) return { ...fail(), lang: postLang, path: path ?? null, translationOf: identity.translationOf };
+  try {
+    const plan = planPublish({ doc, lang: postLang, existingPaths: repo.paths, path, images: upload, lastmod: path ? today : undefined });
+    return { errors, warnings, lang: postLang, path: plan.path, plan, translationOf: identity.translationOf };
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
+    return { ...fail(), lang: postLang, path: path ?? null, translationOf: identity.translationOf };
+  }
+}

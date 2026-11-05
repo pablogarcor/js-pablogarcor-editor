@@ -21,6 +21,11 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/hugo/post.js`: the only place that knows the blog's conventions
   (paths, front matter order, slug, translationKey).
 - `src/github/`: the only code that talks to the network or sees the token.
+  `connection.js` keeps it: in memory, or in sessionStorage if the user asks;
+  never in localStorage, never in a draft, never in a log. The page reads the
+  field once to connect and empties it.
+- Publishing always goes through `preparePublish` (src/hugo/post.js) and the
+  plan the user saw. Never write to `main`.
 - `src/media/webp.js`: browser only.
 - `src/editor/view.js`: what the page shows, as plain objects. No DOM, so it
   stays testable in Node.

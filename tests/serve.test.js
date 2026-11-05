@@ -34,6 +34,7 @@ test('serves the page with a strict CSP', async () => {
   assert.match(res.headers['content-type'], /^text\/html/);
   assert.equal(res.headers['content-security-policy'], CSP);
   assert.match(CSP, /script-src 'self'(;|$)/);
+  assert.match(CSP, /connect-src https:\/\/api\.github\.com(;|$)/, 'the only origin the page may talk to');
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.match(res.body, /src\/editor\/app\.js/);
 });
