@@ -14,8 +14,9 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Publicación en GitHub (rama + commit único + PR) | Hecho, testeado con una API falsa |
 | Conversión de imágenes a WebP en el navegador | Hecho (solo navegador, sin test) |
 | Servidor local (`serve.js`) con CSP estricta | Hecho y testeado |
-| Vista de solo lectura (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
-| Edición, barra de herramientas | **Pendiente** |
+| Vista (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
+| Edición de texto: escribir, Enter, Backspace/Supr, deshacer, selección entre bloques | Hecho; los comandos y el mapeo de la selección se testean en Node, el resto con `docs/pruebas-manuales.md` |
+| Barra de herramientas, metadatos, imágenes | **Pendiente** |
 | Borradores locales (IndexedDB) | **Pendiente** |
 
 ## Estructura
@@ -28,7 +29,9 @@ src/
 │   │                 insertar, borrar, aplicar o quitar una marca.
 │   ├── document.js   Bloques (párrafo, título, lista, cita, código, imagen,
 │   │                 separador, raw) y operaciones inmutables sobre ellos.
-│   └── history.js    Deshacer/rehacer agrupando la escritura seguida.
+│   ├── history.js    Deshacer/rehacer agrupando la escritura seguida.
+│   └── editing.js    Qué hacen escribir, Enter, Backspace y Supr: comandos
+│                     puros sobre el documento y una selección.
 ├── markdown/       Markdown ⇄ modelo.
 │   ├── parse.js      Parser de bloques (subconjunto de CommonMark).
 │   ├── inline.js     Parser y serializador inline (algoritmo de CommonMark).
@@ -43,8 +46,10 @@ src/
 │   └── webp.js     Imagen → WebP con OffscreenCanvas.
 └── editor/         La página.
     ├── view.js       Documento → árbol de objetos planos (vnodes). Sin DOM.
-    ├── dom.js        vnodes → elementos. Lo único de la vista que toca el DOM.
-    ├── app.js        Arranque de la página y eventos.
+    ├── dom.js        vnodes → elementos.
+    ├── selection.js  Puntos del DOM ⇄ posiciones del modelo.
+    ├── editor.js     La superficie editable: eventos → comandos → repintado.
+    ├── app.js        Arranque de la página, abrir y nuevo post.
     └── editor.css
 index.html          La página del editor.
 serve.js            Servidor local, solo para 127.0.0.1.
@@ -78,7 +83,25 @@ node serve.js
 
 Abre http://localhost:8000 y pulsa **Abrir post…**. Elige un `index.md` de tu copia del blog y, si quieres ver sus imágenes, selecciónalas en el mismo diálogo. Las imágenes se muestran desde tu disco con URLs `blob:`; no se sube nada. Otro puerto: `PORT=9000 node serve.js`.
 
-Por ahora la vista es de solo lectura. La barra de estado dice cuántos bloques tiene el post, cuántos se quedan como Markdown sin editar y si guardarlo sin cambios daría el mismo fichero byte a byte.
+También puedes empezar un **Nuevo post**. Se puede editar el texto, pero todavía no se guarda nada: el panel **Markdown**, al final de la página, muestra en vivo lo que se escribiría. La barra de estado dice cuántos bloques tiene el post, cuántos se quedan como Markdown sin editar y si hay cambios respecto al fichero abierto.
+
+### Cómo funciona la edición
+
+Toda la zona de texto es un único `contenteditable`. El navegador nunca modifica el DOM por su cuenta: cada evento `beforeinput` se cancela y se convierte en un comando de `model/editing.js`; después se vuelven a pintar solo los bloques que han cambiado y el cursor se recoloca desde el modelo. Un único elemento editable (en lugar de uno por bloque) da gratis el movimiento del cursor entre bloques, la selección de varios bloques y Ctrl+A.
+
+| Tecla | Qué hace |
+| --- | --- |
+| Enter | Divide el párrafo o el elemento de lista. Al final de un título o una cita, crea un párrafo. En un elemento de lista vacío, sale de la lista. |
+| Shift+Enter | Salto de línea dentro del bloque (no en títulos). |
+| Backspace al principio | Une con el bloque anterior. Un título o una cita pasa a párrafo; el primer elemento de una lista sale de ella. Nunca borra una imagen ni un bloque de código. |
+| Supr al final | Une con el bloque siguiente si es de texto. |
+| Ctrl+Backspace / Ctrl+Supr | Borra una palabra. |
+| Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Deshacer y rehacer. La escritura seguida en un bloque es un solo paso. |
+| Pegar | Solo texto plano por ahora: las líneas en blanco separan párrafos. |
+
+Las imágenes, el código y los bloques sin editar no se pueden modificar todavía, pero se borran si quedan dentro de una selección que se elimina. La composición de teclado (teclas muertas, métodos de entrada) no se puede cancelar: mientras dura, el navegador edita el DOM, y al terminar se aplica el texto al modelo y se repinta.
+
+Las pruebas que dependen del navegador están en [`docs/pruebas-manuales.md`](docs/pruebas-manuales.md).
 
 Hace falta un servidor porque los módulos ES no cargan desde `file://`. `serve.js`:
 - escucha solo en `127.0.0.1` y rechaza peticiones con un `Host` que no sea local;
@@ -161,11 +184,9 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 
 ## Siguiente fase
 
-- `index.html` y `src/editor/`:
-  - cada bloque es un `contenteditable` propio;
-  - se capturan los eventos `beforeinput` y se aplican al modelo con las funciones de `model/`;
-  - la vista se vuelve a pintar desde el modelo.
-- Barra de herramientas: negrita, cursiva, código, enlace y tipo de bloque.
+- Barra de herramientas: negrita, cursiva, código, enlace y tipo de bloque, con sus atajos (Ctrl+B, Ctrl+I…).
+- Editar bloques de código, imágenes (texto alternativo) y bloques sin editar.
+- Panel de metadatos para posts nuevos: título, fecha, slug, etiquetas, descripción.
 - Pegar HTML o texto convirtiéndolo a bloques.
 - Arrastrar imágenes, que pasan por `media/webp.js`.
 - `src/storage/drafts.js`: borradores en IndexedDB.
