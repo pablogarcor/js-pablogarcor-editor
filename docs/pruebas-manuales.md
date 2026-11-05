@@ -47,8 +47,19 @@ Arranca con `node serve.js`, abre http://localhost:8000 y despliega el panel **M
 ## Pegar
 
 - [ ] Pega texto con líneas en blanco desde otro programa: cada bloque de texto es un párrafo.
-- [ ] Pega texto con formato desde una web: entra como texto plano, sin HTML.
-- [ ] Arrastra texto o un fichero sobre el editor: no pasa nada (de momento).
+- [ ] Copia un trozo de una web con títulos, listas, negritas y enlaces, y pégalo en medio de un párrafo: el primer párrafo pegado se une al texto anterior y el último al posterior; el formato se conserva.
+- [ ] Pega desde Google Docs: lo que no es negrita no sale en negrita.
+- [ ] Pega algo con imágenes: no entran, y la barra de estado dice cuántas se han omitido.
+- [ ] Ctrl+Shift+V pega sin formato.
+- [ ] Arrastra texto dentro del editor: no pasa nada.
+
+## Imágenes
+
+- [ ] Con un slug puesto, **Imagen…** con una foto JPEG grande: se convierte (la consola muestra el tamaño), se llama `<slug>.webp`, aparece después del bloque del cursor y el foco está en su texto alternativo.
+- [ ] Arrastra una imagen PNG sobre un párrafo: queda después de ese párrafo y se llama `<slug>-2.webp`.
+- [ ] Pega una captura de pantalla (Impr Pant y Ctrl+V): se añade igual.
+- [ ] Sin texto alternativo, la lista de avisos lo dice; al escribirlo, el aviso desaparece.
+- [ ] En Firefox, las imágenes también se convierten (si el navegador no sabe codificar WebP, lo dice la barra de estado).
 
 ## Barra de herramientas
 

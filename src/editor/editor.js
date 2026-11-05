@@ -24,6 +24,7 @@
 import { blocks as make, createDocument, findBlock, insertBlock, updateBlock } from '../model/document.js';
 import * as edit from '../model/editing.js';
 import * as format from '../model/formatting.js';
+import { htmlToBlocks } from '../model/from-html.js';
 import { canRedo, canUndo, createHistory, push, redo, undo } from '../model/history.js';
 import { marksAt } from '../model/inline.js';
 import { toDom } from './dom.js';
@@ -53,7 +54,11 @@ import { renderBlock } from './view.js';
  *   onChange?: (doc: Doc) => void,
  *   onSelectionChange?: (state: ToolbarState) => void,
  *   onLinkRequest?: () => void,
+ *   onImages?: (files: File[], at: Selection | null) => void,
+ *   onNotice?: (message: string) => void,
  * }} EditorOptions
+ *   onImages: image files pasted or dropped on the text; `at` is where they go
+ *   onNotice: something the user should know (images left out of a paste...)
  */
 
 /**
@@ -75,7 +80,10 @@ const isControl = (target) => target instanceof Element && target.closest('input
  * @param {HTMLElement} root
  * @param {EditorOptions} [options]
  */
-export function createEditor(root, { imageUrl, onChange = () => {}, onSelectionChange = () => {}, onLinkRequest = () => {} } = {}) {
+export function createEditor(
+  root,
+  { imageUrl, onChange = () => {}, onSelectionChange = () => {}, onLinkRequest = () => {}, onImages = () => {}, onNotice = () => {} } = {},
+) {
   root.setAttribute('contenteditable', 'true');
   root.setAttribute('role', 'textbox');
   root.setAttribute('aria-multiline', 'true');
@@ -335,14 +343,67 @@ export function createEditor(root, { imageUrl, onChange = () => {}, onSelectionC
   root.addEventListener('paste', (event) => {
     if (isControl(event.target)) return;
     event.preventDefault();
-    const text = event.clipboardData?.getData('text/plain') ?? '';
+    const data = event.clipboardData;
     const selection = readSelection();
-    if (text && selection) apply(edit.insertPlainText(history.present.doc, selection, text), selection);
+    if (!data || !selection) return;
+    const html = data.getData('text/html');
+    const text = data.getData('text/plain');
+    const images = [...data.files].filter((f) => f.type.startsWith('image/'));
+    if (images.length && !text) {
+      onImages(images, selection);
+      return;
+    }
+    if (html) {
+      // DOMParser builds an inert document: no scripts run, nothing loads.
+      const parsed = new DOMParser().parseFromString(html, 'text/html');
+      const { blocks, skippedImages } = htmlToBlocks(parsed.body);
+      if (blocks.length) apply(edit.insertBlocks(history.present.doc, selection, blocks), selection);
+      // After applying: the change refreshes the status line, the notice must come last.
+      if (skippedImages) {
+        onNotice(`${skippedImages === 1 ? 'Se ha omitido 1 imagen' : `Se han omitido ${skippedImages} imágenes`} del contenido pegado: añádelas como imágenes del post.`);
+      }
+      if (blocks.length) return;
+    }
+    if (text) apply(edit.insertPlainText(history.present.doc, selection, text), selection);
+  });
+
+  /** @param {DragEvent} event */
+  const draggedImages = (event) => [...(event.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+
+  root.addEventListener('dragover', (event) => {
+    if (isControl(event.target)) return;
+    // Allow dropping files; anything else dragged is refused.
+    const files = event.dataTransfer?.types.includes('Files');
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = files ? 'copy' : 'none';
   });
 
   root.addEventListener('drop', (event) => {
-    if (!isControl(event.target)) event.preventDefault();
+    if (isControl(event.target)) return;
+    event.preventDefault();
+    const images = draggedImages(event);
+    if (!images.length) return;
+    onImages(images, dropPosition(event) ?? valid(lastSelection));
   });
+
+  /**
+   * The text position under the mouse, where dropped images go.
+   * @param {DragEvent} event
+   * @returns {Selection | null}
+   */
+  function dropPosition(event) {
+    const doc = /** @type {Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node, offset: number } | null }} */ (
+      root.ownerDocument
+    );
+    const point = doc.caretPositionFromPoint?.(event.clientX, event.clientY);
+    if (point) {
+      const pos = positionOf(root, point.offsetNode, point.offset);
+      return pos ? edit.caret(pos) : null;
+    }
+    const range = doc.caretRangeFromPoint?.(event.clientX, event.clientY);
+    const pos = range ? positionOf(root, range.startContainer, range.startOffset) : null;
+    return pos ? edit.caret(pos) : null;
+  }
 
   root.addEventListener('compositionstart', (event) => {
     if (isControl(event.target)) return;
@@ -475,6 +536,30 @@ export function createEditor(root, { imageUrl, onChange = () => {}, onSelectionC
     transform(change, group) {
       const sel = valid(lastSelection);
       apply({ doc: change(history.present.doc), selection: sel }, sel, { group, select: false });
+    },
+    /**
+     * Inserts image blocks after the block at `at` (or the caret), and puts
+     * the focus in the alt text of the first one.
+     * @param {{ src: string, alt: string }[]} images
+     * @param {Selection | null} [at]
+     */
+    insertImages(images, at = null) {
+      let sel = valid(at) ?? currentSelection();
+      if (!sel || !images.length) return;
+      const before = sel;
+      let doc = history.present.doc;
+      const created = images.map((img) => make.image(img));
+      for (const block of created) {
+        const r = format.insertBlockAfter(doc, sel, block);
+        doc = r.doc;
+        sel = edit.caret({ block: block.id, item: 0, offset: 0 });
+      }
+      const last = created[created.length - 1];
+      const index = doc.blocks.findIndex((b) => b.id === last.id);
+      const next = doc.blocks[index + 1];
+      apply({ doc, selection: next && edit.isTextBlock(next) ? edit.caret({ block: next.id, item: 0, offset: 0 }) : null }, before);
+      const input = blockElement(created[0].id)?.querySelector('[data-control="alt"]');
+      if (input instanceof HTMLInputElement) input.focus();
     },
     /** Gives the focus back to the text, where it was. */
     restoreFocus() {

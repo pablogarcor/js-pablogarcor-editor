@@ -18,7 +18,7 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Edición de texto: escribir, Enter, Backspace/Supr, deshacer, selección entre bloques | Hecho; los comandos y el mapeo de la selección se testean en Node, el resto con `docs/pruebas-manuales.md` |
 | Barra de herramientas: negrita, cursiva, código, enlaces, tipo de bloque, insertar y eliminar bloques | Hecho; los comandos se testean en Node |
 | Metadatos: título, idioma, fecha, slug, translationKey, etiquetas, descripción, con las comprobaciones de `validatePost` en vivo | Hecho; las reglas se testean en Node |
-| Imágenes nuevas, pegar HTML | **Pendiente** |
+| Pegar HTML (webs, Google Docs) convertido en bloques; imágenes nuevas (botón, arrastrar o pegar) convertidas a WebP | Hecho; el conversor HTML y el pegado se testean en Node, la conversión a WebP solo en el navegador |
 | Borradores locales (IndexedDB) | **Pendiente** |
 
 ## Estructura
@@ -34,8 +34,9 @@ src/
 │   ├── history.js    Deshacer/rehacer agrupando la escritura seguida.
 │   ├── editing.js    Qué hacen escribir, Enter, Backspace y Supr: comandos
 │   │                 puros sobre el documento y una selección.
-│   └── formatting.js Marcas, enlaces, tipo de bloque, insertar y quitar
-│                     bloques: los comandos de la barra.
+│   ├── formatting.js Marcas, enlaces, tipo de bloque, insertar y quitar
+│   │                 bloques: los comandos de la barra.
+│   └── from-html.js  HTML pegado → bloques, sin DOM (árbol mínimo).
 ├── markdown/       Markdown ⇄ modelo.
 │   ├── parse.js      Parser de bloques (subconjunto de CommonMark).
 │   ├── inline.js     Parser y serializador inline (algoritmo de CommonMark).
@@ -103,6 +104,15 @@ En un post abierto, el slug y el translationKey no se pueden cambiar: el slug es
 
 Debajo se listan en vivo los errores y avisos de `validatePost`: lo que impedirá publicar y lo que conviene revisar. Los cambios del formulario se deshacen con Ctrl+Z como los del texto.
 
+### Imágenes
+
+Se añaden con el botón **Imagen…**, arrastrándolas sobre el texto o pegándolas (una captura, por ejemplo). Cada imagen:
+- se convierte a WebP en el navegador (`media/webp.js`, como mucho 1600 px de ancho);
+- recibe un nombre a partir del slug, como hace el blog: `mi-post.webp`, `mi-post-2.webp`…;
+- se inserta después del bloque donde está el cursor o donde se suelta, con el foco en su texto alternativo.
+
+Las imágenes nuevas viven solo en la memoria de la página hasta que se publiquen (fase 7) o se guarden como borrador (fase 6). Al pegar HTML, sus imágenes no se copian: la barra de estado avisa de cuántas se han omitido para que las añadas como imágenes del post.
+
 ### Cómo funciona la edición
 
 Toda la zona de texto es un único `contenteditable`. El navegador nunca modifica el DOM por su cuenta: cada evento `beforeinput` se cancela y se convierte en un comando de `model/editing.js`; después se vuelven a pintar solo los bloques que han cambiado y el cursor se recoloca desde el modelo. Un único elemento editable (en lugar de uno por bloque) da gratis el movimiento del cursor entre bloques, la selección de varios bloques y Ctrl+A.
@@ -115,7 +125,7 @@ Toda la zona de texto es un único `contenteditable`. El navegador nunca modific
 | Supr al final | Une con el bloque siguiente si es de texto. |
 | Ctrl+Backspace / Ctrl+Supr | Borra una palabra. |
 | Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Deshacer y rehacer. La escritura seguida en un bloque es un solo paso. |
-| Pegar | Solo texto plano por ahora: las líneas en blanco separan párrafos. |
+| Pegar | Con formato (de una web o de Google Docs): párrafos, títulos, listas, citas, código, negrita, cursiva y enlaces seguros; las imágenes y el resto se descartan. Sin formato: las líneas en blanco separan párrafos. |
 | Ctrl+B / Ctrl+I / Ctrl+E | Negrita, cursiva, código. Sin nada seleccionado, se aplica a lo que escribas a continuación. |
 | Ctrl+K | Enlace sobre la selección, o cambiar el enlace en el que está el cursor. Solo admite `https://`, `http://`, `mailto:` y rutas (`/…`, `#…`); un dominio sin protocolo recibe `https://`. |
 
@@ -206,8 +216,6 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 
 ## Siguiente fase
 
-- Pegar HTML o texto convirtiéndolo a bloques.
-- Arrastrar imágenes, que pasan por `media/webp.js`.
 - `src/storage/drafts.js`: borradores en IndexedDB.
 - Pantalla de publicación:
   - muestra los errores y avisos de `validatePost` y `checkIdentity`;
