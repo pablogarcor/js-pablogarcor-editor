@@ -24,6 +24,16 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/media/webp.js`: browser only.
 - `src/editor/view.js`: what the page shows, as plain objects. No DOM, so it
   stays testable in Node.
+- `src/model/editing.js`: what each key does (typing, Enter, Backspace,
+  Delete, paste). Pure functions `(doc, selection) -> { doc, selection }`;
+  every new key behaviour goes here, with a test, not in the DOM code.
+- `src/editor/selection.js`: DOM points <-> model positions. Uses only
+  nodeType, nodeName, childNodes, parentNode, data and attributes, so it is
+  tested on a fake tree. Relies on the markers view.js puts in the DOM
+  (`data-field`, `data-atom`, `data-filler`).
+- `src/editor/editor.js`: the browser must never change the DOM on its own.
+  Cancel every `beforeinput` and apply a command instead; the only exception
+  is IME composition, which is applied on `compositionend`.
 - `src/editor/dom.js`: the only view code that touches the DOM. Post content
   goes in as text nodes and attributes, never through `innerHTML`.
 - `serve.js`: local server, 127.0.0.1 only, serves `index.html` and `src/`

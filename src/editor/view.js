@@ -12,6 +12,15 @@
  *
  * Links are not rendered as <a>: inside an editor a click must not navigate.
  * The target is shown as the element's title.
+ *
+ * Markers the editor relies on (see selection.js):
+ *  - `data-field="<item>"` on every element holding a text field (item is 0
+ *    except in lists), inside the element with `data-block-id`;
+ *  - `data-atom` on inline images and HTML: one position in the model,
+ *    whatever text they show, and not editable;
+ *  - `data-filler` on a trailing <br> that only gives an empty field (or a
+ *    field ending in a line break) its last line. It is not content;
+ *  - contenteditable="false" on blocks that are not text.
  */
 
 import { FIELD_ORDER, metaOf } from '../hugo/post.js';
@@ -56,8 +65,8 @@ export function renderRuns(runs, opts = {}) {
     let node;
     if (run.type === 'text') node = run.text;
     else if (run.type === 'break') node = h('br');
-    else if (run.type === 'html') node = h('code', { class: 'inline-html' }, [run.html]);
-    else node = renderImage(run.src, run.alt, opts, 'span');
+    else if (run.type === 'html') node = h('code', { class: 'inline-html', ...ATOM }, [run.html]);
+    else node = renderImage(run.src, run.alt, opts, 'span', ATOM);
     const m = run.marks;
     if (m.code) node = h('code', {}, [node]);
     if (m.em) node = h('em', {}, [node]);
@@ -67,18 +76,36 @@ export function renderRuns(runs, opts = {}) {
   });
 }
 
+const ATOM = { 'data-atom': '', contenteditable: 'false' };
+const FIXED = { contenteditable: 'false' };
+
 /**
  * An image, or a placeholder when its file is not available.
  * @param {string} src
  * @param {string} alt
  * @param {ViewOptions} opts
  * @param {string} placeholderTag
+ * @param {Record<string, string>} [extra]
  * @returns {VNode}
  */
-function renderImage(src, alt, opts, placeholderTag) {
+function renderImage(src, alt, opts, placeholderTag, extra = {}) {
   const url = opts.imageUrl?.(src);
-  if (url) return h('img', { src: url, alt });
-  return h(placeholderTag, { class: 'image-missing', title: src }, [`Imagen no cargada: ${alt || src}`]);
+  if (url) return h('img', { src: url, alt, ...extra });
+  return h(placeholderTag, { class: 'image-missing', title: src, ...extra }, [`Imagen no cargada: ${alt || src}`]);
+}
+
+/**
+ * The content of a text field, with a filler <br> when the browser would
+ * otherwise not show its last line (empty field, or one ending in a break).
+ * @param {Run[]} runs
+ * @param {ViewOptions} opts
+ * @returns {VChild[]}
+ */
+function fieldContent(runs, opts) {
+  const children = renderRuns(runs, opts);
+  const last = runs[runs.length - 1];
+  if (!last || last.type === 'break' || (last.type === 'text' && last.text.endsWith('\n'))) children.push(h('br', { 'data-filler': '' }));
+  return children;
 }
 
 /**
@@ -88,29 +115,30 @@ function renderImage(src, alt, opts, placeholderTag) {
  */
 export function renderBlock(block, opts = {}) {
   const attrs = { class: `block block-${block.type}`, 'data-block-id': block.id };
+  const field = { 'data-field': '0' };
   switch (block.type) {
     case 'paragraph':
-      return h('p', attrs, renderRuns(block.runs, opts));
+      return h('p', { ...attrs, ...field }, fieldContent(block.runs, opts));
     case 'heading':
-      return h(`h${Math.min(Math.max(block.level, 1), 6)}`, attrs, renderRuns(block.runs, opts));
+      return h(`h${Math.min(Math.max(block.level, 1), 6)}`, { ...attrs, ...field }, fieldContent(block.runs, opts));
     case 'quote':
-      return h('blockquote', attrs, [h('p', {}, renderRuns(block.runs, opts))]);
+      return h('blockquote', attrs, [h('p', field, fieldContent(block.runs, opts))]);
     case 'list': {
-      const items = block.items.map((item) => h('li', {}, renderRuns(item.runs, opts)));
+      const items = block.items.map((item, i) => h('li', { 'data-field': String(i) }, fieldContent(item.runs, opts)));
       if (!block.ordered) return h('ul', attrs, items);
       return h('ol', { ...attrs, start: block.start === 1 ? undefined : String(block.start) }, items);
     }
     case 'code':
-      return h('pre', { ...attrs, 'data-lang': block.info || undefined }, [h('code', {}, [block.text])]);
+      return h('pre', { ...attrs, ...FIXED, 'data-lang': block.info || undefined }, [h('code', {}, [block.text])]);
     case 'image':
-      return h('figure', attrs, [
+      return h('figure', { ...attrs, ...FIXED }, [
         renderImage(block.src, block.alt, opts, 'div'),
         ...(block.title ? [h('figcaption', {}, [block.title])] : []),
       ]);
     case 'hr':
-      return h('hr', attrs);
+      return h('hr', { ...attrs, ...FIXED });
     case 'raw':
-      return h('div', attrs, [h('div', { class: 'raw-label' }, ['Markdown sin editar']), h('pre', {}, [block.source])]);
+      return h('div', { ...attrs, ...FIXED }, [h('div', { class: 'raw-label' }, ['Markdown sin editar']), h('pre', {}, [block.source])]);
   }
 }
 
