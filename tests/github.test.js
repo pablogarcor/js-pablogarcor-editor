@@ -121,3 +121,13 @@ test('toBase64 handles large binaries', () => {
   const bytes = new Uint8Array(100_000).map((_, i) => i % 256);
   assert.equal(Buffer.from(toBase64(bytes), 'base64').equals(Buffer.from(bytes)), true);
 });
+
+test('getPullRequest reads the state of a pull request, or null when it does not exist', async () => {
+  const fetch = async (url) =>
+    url.endsWith('/pulls/7')
+      ? new Response(JSON.stringify({ number: 7, html_url: 'h', state: 'closed', merged: true }), { status: 200, headers: { 'content-type': 'application/json' } })
+      : new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'content-type': 'application/json' } });
+  const client = createGitHubClient({ token: 't', owner: 'pablogarcor', repo: 'js-pablogarcor-web', fetch });
+  assert.deepEqual(await client.getPullRequest(7), { number: 7, html_url: 'h', state: 'closed', merged: true });
+  assert.equal(await client.getPullRequest(8), null);
+});

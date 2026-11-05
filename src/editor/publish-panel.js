@@ -25,9 +25,11 @@ import { loadPosts, publishFiles } from '../github/publish.js';
  *   current: () => PublishInput,
  *   beforeCheck: () => Promise<void>,
  *   setStatus: (text: string, kind?: 'info' | 'error') => void,
+ *   onPublished: (pr: { number: number, url: string, branch: string, doc: Doc }) => void,
  * }} hooks
+ *   onPublished: the post was sent; doc is the document that was checked and sent
  */
-export function createPublishPanel(scope, { current, beforeCheck, setStatus }) {
+export function createPublishPanel(scope, { current, beforeCheck, setStatus, onPublished }) {
   /** @param {string} selector */
   const q = (selector) => /** @type {HTMLElement} */ (scope.querySelector(selector));
   const panel = q('#publish-panel');
@@ -121,7 +123,7 @@ export function createPublishPanel(scope, { current, beforeCheck, setStatus }) {
       report.append(item('El post ha cambiado desde la comprobación: vuelve a comprobarlo.', 'error'));
       return;
     }
-    const { plan } = checked;
+    const { plan, doc } = checked;
     goButton.disabled = true;
     checkButton.disabled = true;
     result.textContent = 'Publicando…';
@@ -144,6 +146,7 @@ export function createPublishPanel(scope, { current, beforeCheck, setStatus }) {
         result.append(link, ': revisa la vista previa de Azure y haz merge para publicarlo. Si sigues editando, vuelve a publicar y se actualizará el mismo PR.');
       }
       setStatus(sent.pullRequest ? `Publicado en el PR #${sent.pullRequest.number}.` : 'Publicado.');
+      if (sent.pullRequest) onPublished({ number: sent.pullRequest.number, url: sent.pullRequest.url, branch: sent.branch, doc });
       planBox.hidden = true;
       checked = null;
     } catch (err) {

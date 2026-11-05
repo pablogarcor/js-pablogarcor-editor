@@ -19,7 +19,8 @@ import { parseMarkdown } from '../markdown/parse.js';
 import { serializeMarkdown } from '../markdown/serialize.js';
 import { metaEdit, metaOf, newPost, referencedImages, updateMeta, validatePost } from '../hugo/post.js';
 import { imageName, toWebp } from '../media/webp.js';
-import { describeWhen, fromDraft, toDraft, worthSaving } from '../storage/draft.js';
+import { canForget, describeWhen, fromDraft, publishState, toDraft, worthSaving } from '../storage/draft.js';
+import { client, isConnected } from '../github/connection.js';
 import { deleteDraft, listDrafts, saveDraft } from '../storage/drafts.js';
 import { createEditor } from './editor.js';
 import { createMetaForm } from './meta-form.js';
@@ -60,6 +61,8 @@ let lang = 'es';
 let publishedSlug = /** @type {string | null} */ (null);
 /** Whether slug and translationKey still follow the title (new posts only). */
 let follow = { slugFollowsTitle: true, keyFollowsSlug: true };
+/** The pull request this post was last published to. */
+let published = /** @type {import('../storage/draft.js').Published | null} */ (null);
 
 /** The draft this session saves to, and its state. */
 let draftId = /** @type {string | null} */ (null);
@@ -147,6 +150,7 @@ function currentSession() {
     publishedSlug,
     follow: { ...follow },
     images: [...images].map(([name, img]) => ({ name, blob: img.blob, isNew: img.isNew })),
+    published,
   };
 }
 
@@ -176,7 +180,7 @@ async function saveNow() {
   } catch (err) {
     setStatus(`No se ha podido guardar el borrador: ${message(err)}`, 'error');
   }
-  if (!draftsPanel.hidden) void showDrafts();
+  if (!draftsPanel.hidden) void showDrafts({ cleanup: false });
 }
 
 /**
@@ -192,6 +196,7 @@ async function startSession(session, draft) {
   lang = session.lang;
   publishedSlug = session.publishedSlug;
   follow = { ...session.follow };
+  published = session.published ?? null;
   draftId = session.id;
   draftStored = draft.stored;
   savedAt = draft.savedAt ? new Date(draft.savedAt) : null;
@@ -210,7 +215,11 @@ async function startSession(session, draft) {
   refresh();
 }
 
-async function showDrafts() {
+/**
+ * @param {{ cleanup?: boolean }} [opts] cleanup: with GitHub connected, drop
+ *   the drafts whose pull request is merged (canForget)
+ */
+async function showDrafts({ cleanup = true } = {}) {
   let drafts;
   try {
     drafts = await listDrafts();
@@ -218,6 +227,7 @@ async function showDrafts() {
     setStatus(`No se pueden leer los borradores: ${message(err)}`, 'error');
     return;
   }
+  if (cleanup && isConnected()) void forgetMerged(drafts);
   draftsList.replaceChildren(...drafts.map(draftItem));
   if (!drafts.length) {
     const li = document.createElement('li');
@@ -226,6 +236,30 @@ async function showDrafts() {
     draftsList.append(li);
   }
   draftsPanel.hidden = false;
+}
+
+/**
+ * Deletes the drafts whose pull request was merged and that have not changed
+ * since. The open post is left alone.
+ * @param {Draft[]} drafts
+ */
+async function forgetMerged(drafts) {
+  let forgotten = 0;
+  for (const draft of drafts) {
+    if (draft.id === draftId || publishState(draft) !== 'published' || !draft.published) continue;
+    try {
+      const pr = await client().getPullRequest(draft.published.number);
+      if (pr && canForget(draft, pr)) {
+        await deleteDraft(draft.id);
+        forgotten++;
+      }
+    } catch {
+      // Offline or no access: try again next time.
+    }
+  }
+  if (!forgotten) return;
+  setStatus(`${forgotten === 1 ? 'Se ha borrado 1 borrador' : `Se han borrado ${forgotten} borradores`} de posts ya publicados (PR mergeado).`);
+  if (!draftsPanel.hidden) await showDrafts({ cleanup: false });
 }
 
 /** @param {Draft} draft */
@@ -237,8 +271,10 @@ function draftItem(draft) {
   const detail = document.createElement('span');
   detail.className = 'hint';
   const kind = draft.opened ? `cambios en ${draft.publishedSlug ?? draft.opened.name}` : 'post nuevo';
+  const state = publishState(draft);
+  const pr = draft.published ? ` · ${state === 'changed' ? `cambios sin publicar después del PR #${draft.published.number}` : `publicado en el PR #${draft.published.number}`}` : '';
   const count = draft.images.filter((i) => i.isNew).length;
-  detail.textContent = ` · ${kind} · ${describeWhen(draft.updatedAt)}${count ? ` · ${count} ${count === 1 ? 'imagen nueva' : 'imágenes nuevas'}` : ''}${draft.id === draftId ? ' · abierto' : ''}`;
+  detail.textContent = ` · ${kind} · ${describeWhen(draft.updatedAt)}${count ? ` · ${count} ${count === 1 ? 'imagen nueva' : 'imágenes nuevas'}` : ''}${pr}${draft.id === draftId ? ' · abierto' : ''}`;
   info.append(title, detail);
 
   const openButton = document.createElement('button');
@@ -270,7 +306,7 @@ function draftItem(draft) {
         // The open post keeps going; its next change creates the draft again.
       }
       refresh();
-      await showDrafts();
+      await showDrafts({ cleanup: false });
     } catch (err) {
       setStatus(`No se ha podido borrar el borrador: ${message(err)}`, 'error');
     }
@@ -290,6 +326,13 @@ const publishPanel = createPublishPanel(document, {
   }),
   beforeCheck: saveNow,
   setStatus,
+  onPublished({ number, url, branch, doc }) {
+    // The draft remembers what was sent: once the PR is merged it can go,
+    // unless the post changes again (see canForget).
+    published = { number, url, branch, markdown: serializeMarkdown(doc), at: new Date().toISOString() };
+    unsaved = true;
+    void saveNow();
+  },
 });
 publishButton.addEventListener('click', () => publishPanel.toggle());
 

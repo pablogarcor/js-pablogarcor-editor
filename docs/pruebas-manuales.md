@@ -112,6 +112,8 @@ Usa tu token real en un post de prueba y cierra el PR sin hacer merge al termina
 - [ ] Cambia el post después de comprobar y pulsa publicar: pide comprobar otra vez. Comprueba y publica: el mismo PR recibe un segundo commit.
 - [ ] Abre un post publicado de tu copia del blog, cambia una frase y publica: el PR solo cambia esa frase y añade o cambia `lastmod`.
 - [ ] Con tu copia del blog desactualizada respecto a `main`, abrir y publicar un post dice que hagas `git pull`.
+- [ ] Tras publicar, el borrador aparece en la lista como «publicado en el PR #n». Edita algo: pasa a «cambios sin publicar después del PR #n».
+- [ ] Haz merge de un PR de prueba sin haber editado después. Con GitHub conectado, abre **Borradores** desde otro post: ese borrador desaparece y la barra lo dice. Uno con cambios posteriores se queda.
 - [ ] **Desconectar** vacía el token; recargar no lo recupera.
 - [ ] En DevTools → Application: el token no está en Local Storage ni en IndexedDB.
 

@@ -58,3 +58,15 @@ test('when a draft was saved, in words', () => {
   assert.match(describeWhen(new Date('2026-11-05T08:05:00').toISOString(), now), /^hoy, 08:05$/);
   assert.match(describeWhen(new Date('2026-11-04T18:02:00').toISOString(), now), /^ayer, 18:02$/);
 });
+
+test('a published draft: forgotten once merged, unless edited afterwards', async () => {
+  const { canForget, publishState } = await import('../src/storage/draft.js');
+  const published = { number: 3, url: 'u', branch: 'post/es/x', markdown: 'A\n', at: '2026-11-05T10:00:00Z' };
+  assert.equal(publishState({ markdown: 'A\n', published: null }), 'draft');
+  assert.equal(publishState({ markdown: 'A\n' }), 'draft', 'drafts saved before this feature');
+  assert.equal(publishState({ markdown: 'A\n', published }), 'published');
+  assert.equal(publishState({ markdown: 'A, more\n', published }), 'changed');
+  assert.equal(canForget({ markdown: 'A\n', published }, { merged: true }), true);
+  assert.equal(canForget({ markdown: 'A\n', published }, { merged: false }), false);
+  assert.equal(canForget({ markdown: 'A, more\n', published }, { merged: true }), false, 'edits after publishing are only in the draft');
+});
