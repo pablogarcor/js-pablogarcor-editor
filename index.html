@@ -11,6 +11,7 @@
   <header class="bar">
     <span class="brand">Editor</span>
     <button id="new" class="button" type="button">Nuevo post</button>
+    <button id="drafts" class="button" type="button">Borradores</button>
     <label class="button">
       Abrir post…
       <input id="open" class="visually-hidden" type="file" accept=".md,.markdown,image/*" multiple>
@@ -56,10 +57,15 @@
     </div>
   </header>
   <main id="post">
+    <section id="drafts-panel" class="drafts" aria-label="Borradores" hidden>
+      <h2>Borradores</h2>
+      <p class="hint">Se guardan solos en este navegador mientras escribes, con sus imágenes.</p>
+      <ul id="drafts-list"></ul>
+    </section>
     <div id="empty" class="empty">
       <p>Empieza un post nuevo o abre uno de tu copia local del blog, por ejemplo <code>content/es/blog/2026/07/31/index.md</code>.</p>
       <p>Si el post tiene imágenes, selecciónalas junto al <code>.md</code> en el mismo diálogo para verlas.</p>
-      <p>Todavía no se guarda nada: el panel <strong>Markdown</strong> muestra lo que se escribiría.</p>
+      <p>Lo que escribes se guarda solo como borrador en este navegador. El panel <strong>Markdown</strong> muestra lo que se publicaría.</p>
     </div>
     <section id="meta-form" class="meta-form" aria-label="Datos del post" hidden>
       <input id="meta-title" class="title-input" data-field="title" placeholder="Título del post" aria-label="Título" autocomplete="off">

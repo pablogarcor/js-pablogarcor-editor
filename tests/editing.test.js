@@ -214,3 +214,15 @@ test('text typed into a new paragraph serializes with the house style', () => {
   assert.equal(md(r), 'Intro\n\n\\*not\\* a list, 1. not a number\n');
   valid(r);
 });
+
+test('a post that ends in an image gets an empty paragraph to keep writing, without changing its Markdown', async () => {
+  const { ensureEditable } = await import('../src/model/editing.js');
+  const source = 'Text\n\n![Alt](a.webp)\n';
+  const doc = parseMarkdown(source);
+  const fixed = ensureEditable(doc);
+  assert.deepEqual(fixed.blocks.map((b) => b.type), ['paragraph', 'image', 'paragraph']);
+  assert.equal(serializeMarkdown(fixed), source);
+  const text = parseMarkdown('Only text\n');
+  assert.equal(ensureEditable(text), text, 'unchanged when it already ends in text');
+  assert.deepEqual(ensureEditable(parseMarkdown('')).blocks.map((b) => b.type), ['paragraph']);
+});

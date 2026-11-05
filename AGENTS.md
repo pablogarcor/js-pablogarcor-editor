@@ -33,6 +33,9 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/model/from-html.js`: pasted HTML -> blocks over a minimal node
   interface (tested with a fake tree). Pasted HTML never reaches the page as
   HTML; links go through `normalizeHref`; images are dropped and reported.
+- `src/storage/draft.js`: what a draft holds (the post as Markdown, its
+  images, the session state); pure and tested. `src/storage/drafts.js` is
+  the IndexedDB wrapper, browser only. Drafts never leave the browser.
 - `src/editor/selection.js`: DOM points <-> model positions. Uses only
   nodeType, nodeName, childNodes, parentNode, data and attributes, so it is
   tested on a fake tree. Relies on the markers view.js puts in the DOM

@@ -88,8 +88,18 @@ Arranca con `node serve.js`, abre http://localhost:8000 y despliega el panel **M
 - [ ] Ctrl+Z en el texto deshace también los cambios del formulario, y los campos se actualizan.
 - [ ] Abre un post publicado: slug y translationKey son de solo lectura y no aparece el idioma. Cambia el título: en el panel Markdown solo cambia la línea `title:`.
 
+## Borradores
+
+- [ ] Empieza un post nuevo, escribe título, texto y añade una imagen. La barra dice «borrador guardado» en menos de un segundo.
+- [ ] Recarga: la página de inicio lista el borrador con su título, «post nuevo», cuándo y «1 imagen nueva». **Abrir** lo recupera todo, imagen incluida.
+- [ ] **Nuevo post** con un post a medias no pregunta: el anterior aparece en **Borradores**.
+- [ ] Un post nuevo sin escribir nada no crea borrador.
+- [ ] Abre un post publicado y cambia algo: aparece su borrador («cambios en <slug>»). Deshaz el cambio: el borrador desaparece.
+- [ ] Abre otra vez el mismo fichero teniendo un borrador suyo: la barra avisa de que está en Borradores.
+- [ ] **Borrar** pide un segundo clic y lo quita de la lista.
+- [ ] En una ventana privada de Firefox (sin IndexedDB) el editor funciona, sin borradores.
+
 ## Resto
 
-- [ ] **Nuevo post** con cambios pendientes pregunta antes de descartarlos.
-- [ ] Recarga con cambios: el navegador avisa antes de salir.
+- [ ] Si recargas justo después de escribir (antes de que diga «borrador guardado»), el navegador avisa antes de salir.
 - [ ] En la consola del navegador no hay errores, tampoco de CSP.
