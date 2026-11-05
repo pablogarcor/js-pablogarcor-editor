@@ -13,7 +13,9 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Convenciones de Hugo (rutas, front matter, slug, traducciones) | Hecho |
 | Publicación en GitHub (rama + commit único + PR) | Hecho, testeado con una API falsa |
 | Conversión de imágenes a WebP en el navegador | Hecho (solo navegador, sin test) |
-| Interfaz del editor (`index.html`, vista, barra de herramientas) | **Pendiente** |
+| Servidor local (`serve.js`) con CSP estricta | Hecho y testeado |
+| Vista de solo lectura (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
+| Edición, barra de herramientas | **Pendiente** |
 | Borradores locales (IndexedDB) | **Pendiente** |
 
 ## Estructura
@@ -37,8 +39,15 @@ src/
 ├── github/
 │   ├── client.js   Cliente REST mínimo sobre fetch.
 │   └── publish.js  Rama + commit con todos los ficheros + PR contra main.
-└── media/
-    └── webp.js     Imagen → WebP con OffscreenCanvas.
+├── media/
+│   └── webp.js     Imagen → WebP con OffscreenCanvas.
+└── editor/         La página.
+    ├── view.js       Documento → árbol de objetos planos (vnodes). Sin DOM.
+    ├── dom.js        vnodes → elementos. Lo único de la vista que toca el DOM.
+    ├── app.js        Arranque de la página y eventos.
+    └── editor.css
+index.html          La página del editor.
+serve.js            Servidor local, solo para 127.0.0.1.
 tests/              node --test, sin librerías.
 ```
 
@@ -47,6 +56,7 @@ Por qué está separado así:
 - **`model/` y `markdown/` no tocan el DOM.** Por eso se pueden probar en Node, incluido el test que pasa por todos los posts reales.
 - **`hugo/` es la única capa que conoce tu blog.** Rutas, orden del front matter, slug y `translationKey` viven ahí. Si cambias el blog, solo tocas ese módulo.
 - **`github/` es lo único que habla con la red y lo único que ve el token.**
+- **`editor/view.js` no toca el DOM.** Decide qué se muestra y se prueba en Node; `dom.js` solo lo convierte en elementos.
 
 ## Cómo se conserva tu Markdown
 
@@ -59,6 +69,23 @@ Mientras no tocas un bloque, se vuelve a escribir desde `raw`. Así, abrir un po
 Cada bloque escrito desde el modelo se verifica: se vuelve a parsear y tiene que dar exactamente el mismo bloque. Si no lo da, se reintenta escapando más. Algunos casos no se pueden expresar con `**` o `_` según CommonMark, como `**"cita"**palabra`, donde la negrita acaba en puntuación pegada a una letra. En esos casos se escribe la letra vecina como entidad (`&#x70;`), que se ve igual. Es la misma solución que usa remark.
 
 Lo que el editor no sabe editar visualmente se queda como bloque `raw`: tablas, HTML, listas anidadas, citas o elementos de lista con varios párrafos, shortcodes y definiciones de enlaces de referencia. El editor lo mostrará como Markdown en crudo. Ahora mismo ninguno de tus posts tiene bloques así.
+
+## Ejecutar en local
+
+```sh
+node serve.js
+```
+
+Abre http://localhost:8000 y pulsa **Abrir post…**. Elige un `index.md` de tu copia del blog y, si quieres ver sus imágenes, selecciónalas en el mismo diálogo. Las imágenes se muestran desde tu disco con URLs `blob:`; no se sube nada. Otro puerto: `PORT=9000 node serve.js`.
+
+Por ahora la vista es de solo lectura. La barra de estado dice cuántos bloques tiene el post, cuántos se quedan como Markdown sin editar y si guardarlo sin cambios daría el mismo fichero byte a byte.
+
+Hace falta un servidor porque los módulos ES no cargan desde `file://`. `serve.js`:
+- escucha solo en `127.0.0.1` y rechaza peticiones con un `Host` que no sea local;
+- sirve únicamente `index.html` y `src/`;
+- envía una Content-Security-Policy estricta: solo scripts y estilos servidos por él, nada inline. Cuando el editor tenga el token, ningún script ajeno podrá leerlo.
+
+El contenido de los posts llega a la página solo como texto (`textContent`, `setAttribute`), nunca con `innerHTML`.
 
 ## Publicar
 
@@ -117,6 +144,8 @@ Qué se comprueba:
   Estado actual: 23/23 posts sin pérdidas. 14/23 salen idénticos escritos desde el modelo y 741/767 bloques también. El resto difiere solo en espacios al final de línea, dobles líneas en blanco y `_cursiva_` frente a `*cursiva*`.
 - **`fuzz.test.js`**: 3000 bloques aleatorios con marcas mezcladas y los caracteres que suelen romper Markdown. Con semilla fija, así que un fallo se puede reproducir. En desarrollo se pasó con 150.000 casos sin fallos.
 - **El resto de tests** cubren el modelo, el parser de bloques, el front matter, las reglas de Hugo y la publicación contra una API de GitHub falsa en memoria.
+
+El workflow también comprueba los tipos JSDoc de `src/` con `tsc -p jsconfig.json`. El código sigue siendo JavaScript: `tsc` solo lo lee. Se descarga con `npx` en el CI, así que no hace falta `package.json`. Para ejecutarlo en local necesitas TypeScript instalado globalmente (`npm install -g typescript`).
 
 El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cada push y también cada lunes. Así, si un post nuevo usa algo que el parser no entiende, te enteras.
 
