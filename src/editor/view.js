@@ -32,9 +32,12 @@ import { serializeMarkdown } from '../markdown/serialize.js';
  * @typedef {import('../model/inline.js').Run} Run
  * @typedef {{ tag: string, attrs?: Record<string, string>, children?: VChild[] }} VNode
  * @typedef {VNode | string} VChild
- * @typedef {{ imageUrl?: (src: string) => string | undefined }} ViewOptions
+ * @typedef {{ imageUrl?: (src: string) => string | undefined, editable?: boolean }} ViewOptions
  *   imageUrl: the URL to show for an image of the post (for example a blob:
- *   URL of a file the user opened); undefined shows a placeholder
+ *   URL of a file the user opened); undefined shows a placeholder.
+ *   editable: blocks that are not text get form controls to edit them
+ *   (`data-control` says which property) and a remove button
+ *   (`data-action="remove"`)
  */
 
 /**
@@ -129,17 +132,55 @@ export function renderBlock(block, opts = {}) {
       return h('ol', { ...attrs, start: block.start === 1 ? undefined : String(block.start) }, items);
     }
     case 'code':
+      if (opts.editable) {
+        return h('div', { ...attrs, ...FIXED }, [
+          tools([
+            h('input', { 'data-control': 'info', value: block.info, placeholder: 'lenguaje', 'aria-label': 'Lenguaje del código', spellcheck: 'false', size: '10' }),
+          ]),
+          textArea('text', block.text, 'Código'),
+        ]);
+      }
       return h('pre', { ...attrs, ...FIXED, 'data-lang': block.info || undefined }, [h('code', {}, [block.text])]);
     case 'image':
       return h('figure', { ...attrs, ...FIXED }, [
         renderImage(block.src, block.alt, opts, 'div'),
         ...(block.title ? [h('figcaption', {}, [block.title])] : []),
+        ...(opts.editable
+          ? [tools([h('input', { 'data-control': 'alt', value: block.alt, placeholder: 'Texto alternativo: describe la imagen', 'aria-label': 'Texto alternativo', class: 'grow' })])]
+          : []),
       ]);
     case 'hr':
+      if (opts.editable) return h('div', { ...attrs, ...FIXED }, [h('hr'), tools([])]);
       return h('hr', { ...attrs, ...FIXED });
     case 'raw':
+      if (opts.editable) {
+        return h('div', { ...attrs, ...FIXED }, [tools([h('span', { class: 'raw-label' }, ['Markdown sin editar'])]), textArea('source', block.source, 'Markdown sin editar')]);
+      }
       return h('div', { ...attrs, ...FIXED }, [h('div', { class: 'raw-label' }, ['Markdown sin editar']), h('pre', {}, [block.source])]);
   }
+}
+
+/**
+ * The control row of a block that is not text, ending with its remove button.
+ * @param {VChild[]} controls
+ * @returns {VNode}
+ */
+function tools(controls) {
+  return h('div', { class: 'block-tools' }, [
+    ...controls,
+    h('button', { type: 'button', class: 'block-remove', 'data-action': 'remove', title: 'Eliminar bloque', 'aria-label': 'Eliminar bloque' }, ['×']),
+  ]);
+}
+
+/**
+ * @param {string} control
+ * @param {string} value
+ * @param {string} label
+ * @returns {VNode}
+ */
+function textArea(control, value, label) {
+  const rows = String(Math.max(2, value.split('\n').length));
+  return h('textarea', { 'data-control': control, rows, spellcheck: 'false', 'aria-label': label }, [value]);
 }
 
 /**

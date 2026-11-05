@@ -10,8 +10,9 @@
  */
 
 const TAGS = new Set([
-  'article', 'blockquote', 'br', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'figcaption', 'figure',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'img', 'li', 'ol', 'p', 'pre', 'span', 'strong', 'ul',
+  'article', 'blockquote', 'br', 'button', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'figcaption', 'figure',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'img', 'input', 'li', 'ol', 'p', 'pre', 'span', 'strong',
+  'textarea', 'ul',
 ]);
 
 /**

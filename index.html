@@ -16,6 +16,40 @@
       <input id="open" class="visually-hidden" type="file" accept=".md,.markdown,image/*" multiple>
     </label>
     <p id="status" role="status"></p>
+    <div id="toolbar" class="toolbar" role="toolbar" aria-label="Formato" hidden>
+      <select id="block-type" aria-label="Tipo de bloque">
+        <option value="paragraph">Párrafo</option>
+        <option value="h2">Título 2</option>
+        <option value="h3">Título 3</option>
+        <option value="h4">Título 4</option>
+        <option value="quote">Cita</option>
+        <option value="ul">Lista</option>
+        <option value="ol">Lista numerada</option>
+        <option value="" disabled>—</option>
+      </select>
+      <span class="group">
+        <button type="button" class="tool" data-mark="strong" aria-pressed="false" title="Negrita (Ctrl+B)"><strong>N</strong></button>
+        <button type="button" class="tool" data-mark="em" aria-pressed="false" title="Cursiva (Ctrl+I)"><em>K</em></button>
+        <button type="button" class="tool" data-mark="code" aria-pressed="false" title="Código (Ctrl+E)"><code>&lt;/&gt;</code></button>
+        <button type="button" class="tool" id="link-button" aria-pressed="false" title="Enlace (Ctrl+K)">Enlace</button>
+      </span>
+      <span class="group">
+        <button type="button" class="tool" data-insert="hr" title="Insertar un separador después de este bloque">Separador</button>
+        <button type="button" class="tool" data-insert="code" title="Insertar un bloque de código después de este bloque">Bloque de código</button>
+      </span>
+      <span class="group">
+        <button type="button" class="tool" id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
+        <button type="button" class="tool" id="redo" title="Rehacer (Ctrl+Shift+Z)" aria-label="Rehacer">↷</button>
+      </span>
+    </div>
+    <div id="link-panel" class="link-panel" hidden>
+      <label for="link-url">Enlace</label>
+      <input id="link-url" type="text" inputmode="url" placeholder="https://… o /ruta-del-blog/" spellcheck="false" autocomplete="off">
+      <button type="button" class="button" id="link-apply">Aplicar</button>
+      <button type="button" class="button" id="link-remove">Quitar enlace</button>
+      <button type="button" class="button" id="link-cancel">Cancelar</button>
+      <span id="link-error" class="error" role="alert"></span>
+    </div>
   </header>
   <main id="post">
     <div id="empty" class="empty">

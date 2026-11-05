@@ -2,9 +2,9 @@
 /**
  * Entry point of the editor page.
  *
- * Phase 2: start a new post or open one from a local copy of the blog, and
- * edit its text. The Markdown panel shows what would be written, live.
- * Nothing is saved or uploaded yet.
+ * Start a new post or open one from a local copy of the blog, and edit it
+ * with the keyboard and the toolbar. The Markdown panel shows, live, what
+ * would be written. Nothing is saved or uploaded yet.
  *
  * To open a post, the user picks its .md file and, optionally, its images in
  * the same dialog. Images are shown through blob: URLs of those files.
@@ -16,6 +16,7 @@ import { serializeMarkdown } from '../markdown/serialize.js';
 import { referencedImages } from '../hugo/post.js';
 import { mount } from './dom.js';
 import { createEditor } from './editor.js';
+import { createToolbar } from './toolbar.js';
 import { renderMeta } from './view.js';
 
 /** @param {string} id */
@@ -39,12 +40,15 @@ let dirty = false;
 /** @param {string} src */
 const localName = (src) => src.replace(/^\.\//, '');
 
+const toolbar = createToolbar(document, () => editor, setStatus);
 const editor = createEditor(surface, {
   imageUrl: (src) => imageUrls.get(localName(src)),
   onChange: (doc) => {
     dirty = opened ? serializeMarkdown(doc) !== opened.source : true;
     refresh();
   },
+  onSelectionChange: (state) => toolbar.update(state),
+  onLinkRequest: () => toolbar.openLink(),
 });
 
 /** @param {string} message @param {'info' | 'error'} [kind] */
@@ -78,6 +82,7 @@ function show(hasMeta) {
   meta.hidden = !hasMeta;
   surface.hidden = false;
   sourcePanel.hidden = false;
+  toolbar.show(true);
 }
 
 function confirmDiscard() {

@@ -27,6 +27,9 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/model/editing.js`: what each key does (typing, Enter, Backspace,
   Delete, paste). Pure functions `(doc, selection) -> { doc, selection }`;
   every new key behaviour goes here, with a test, not in the DOM code.
+- `src/model/formatting.js`: toolbar commands (marks, links, block type,
+  inserting and removing blocks), same shape as editing.js. Link targets go
+  through `normalizeHref`: never accept `javascript:` or `data:` URLs.
 - `src/editor/selection.js`: DOM points <-> model positions. Uses only
   nodeType, nodeName, childNodes, parentNode, data and attributes, so it is
   tested on a fake tree. Relies on the markers view.js puts in the DOM
@@ -34,6 +37,9 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/editor/editor.js`: the browser must never change the DOM on its own.
   Cancel every `beforeinput` and apply a command instead; the only exception
   is IME composition, which is applied on `compositionend`.
+- Blocks that are not text are edited through form controls
+  (`data-control`); editor.js ignores keyboard and input events coming from
+  them, except their `input` event, which updates the model.
 - `src/editor/dom.js`: the only view code that touches the DOM. Post content
   goes in as text nodes and attributes, never through `innerHTML`.
 - `serve.js`: local server, 127.0.0.1 only, serves `index.html` and `src/`

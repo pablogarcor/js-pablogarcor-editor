@@ -16,7 +16,8 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Servidor local (`serve.js`) con CSP estricta | Hecho y testeado |
 | Vista (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
 | Edición de texto: escribir, Enter, Backspace/Supr, deshacer, selección entre bloques | Hecho; los comandos y el mapeo de la selección se testean en Node, el resto con `docs/pruebas-manuales.md` |
-| Barra de herramientas, metadatos, imágenes | **Pendiente** |
+| Barra de herramientas: negrita, cursiva, código, enlaces, tipo de bloque, insertar y eliminar bloques | Hecho; los comandos se testean en Node |
+| Metadatos, imágenes nuevas | **Pendiente** |
 | Borradores locales (IndexedDB) | **Pendiente** |
 
 ## Estructura
@@ -30,8 +31,10 @@ src/
 │   ├── document.js   Bloques (párrafo, título, lista, cita, código, imagen,
 │   │                 separador, raw) y operaciones inmutables sobre ellos.
 │   ├── history.js    Deshacer/rehacer agrupando la escritura seguida.
-│   └── editing.js    Qué hacen escribir, Enter, Backspace y Supr: comandos
-│                     puros sobre el documento y una selección.
+│   ├── editing.js    Qué hacen escribir, Enter, Backspace y Supr: comandos
+│   │                 puros sobre el documento y una selección.
+│   └── formatting.js Marcas, enlaces, tipo de bloque, insertar y quitar
+│                     bloques: los comandos de la barra.
 ├── markdown/       Markdown ⇄ modelo.
 │   ├── parse.js      Parser de bloques (subconjunto de CommonMark).
 │   ├── inline.js     Parser y serializador inline (algoritmo de CommonMark).
@@ -49,6 +52,7 @@ src/
     ├── dom.js        vnodes → elementos.
     ├── selection.js  Puntos del DOM ⇄ posiciones del modelo.
     ├── editor.js     La superficie editable: eventos → comandos → repintado.
+    ├── toolbar.js    Barra de herramientas y panel de enlaces.
     ├── app.js        Arranque de la página, abrir y nuevo post.
     └── editor.css
 index.html          La página del editor.
@@ -98,8 +102,12 @@ Toda la zona de texto es un único `contenteditable`. El navegador nunca modific
 | Ctrl+Backspace / Ctrl+Supr | Borra una palabra. |
 | Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Deshacer y rehacer. La escritura seguida en un bloque es un solo paso. |
 | Pegar | Solo texto plano por ahora: las líneas en blanco separan párrafos. |
+| Ctrl+B / Ctrl+I / Ctrl+E | Negrita, cursiva, código. Sin nada seleccionado, se aplica a lo que escribas a continuación. |
+| Ctrl+K | Enlace sobre la selección, o cambiar el enlace en el que está el cursor. Solo admite `https://`, `http://`, `mailto:` y rutas (`/…`, `#…`); un dominio sin protocolo recibe `https://`. |
 
-Las imágenes, el código y los bloques sin editar no se pueden modificar todavía, pero se borran si quedan dentro de una selección que se elimina. La composición de teclado (teclas muertas, métodos de entrada) no se puede cancelar: mientras dura, el navegador edita el DOM, y al terminar se aplica el texto al modelo y se repinta.
+La barra cambia el tipo de bloque (párrafo, títulos 2 a 4, cita, lista, lista numerada) de todo lo seleccionado; en una lista, solo de los elementos seleccionados. Elegir el tipo que ya tiene lo devuelve a párrafo. Varios párrafos convertidos en lista forman una sola lista, que se une a la lista vecina del mismo tipo.
+
+Los bloques que no son texto se editan con sus propios controles: el lenguaje y el código de un bloque de código, el texto alternativo de una imagen, el Markdown de un bloque sin editar. Todos tienen un botón × para eliminarlos. La barra inserta separadores y bloques de código después del bloque del cursor. La composición de teclado (teclas muertas, métodos de entrada) no se puede cancelar: mientras dura, el navegador edita el DOM, y al terminar se aplica el texto al modelo y se repinta.
 
 Las pruebas que dependen del navegador están en [`docs/pruebas-manuales.md`](docs/pruebas-manuales.md).
 
@@ -184,8 +192,6 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 
 ## Siguiente fase
 
-- Barra de herramientas: negrita, cursiva, código, enlace y tipo de bloque, con sus atajos (Ctrl+B, Ctrl+I…).
-- Editar bloques de código, imágenes (texto alternativo) y bloques sin editar.
 - Panel de metadatos para posts nuevos: título, fecha, slug, etiquetas, descripción.
 - Pegar HTML o texto convirtiéndolo a bloques.
 - Arrastrar imágenes, que pasan por `media/webp.js`.
