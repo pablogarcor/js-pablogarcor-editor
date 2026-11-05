@@ -25,3 +25,7 @@ jobs:
       - run: node --test
         env:
           BLOG_DIR: blog
+      # Type check of the JSDoc in src/ (jsconfig.json). The code stays plain
+      # JavaScript: tsc only reads it. Fetched by npx, so the repo still has no
+      # package.json.
+      - run: npx --yes --package typescript@5.9.3 tsc -p jsconfig.json

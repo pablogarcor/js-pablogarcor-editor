@@ -22,6 +22,13 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
   (paths, front matter order, slug, translationKey).
 - `src/github/`: the only code that talks to the network or sees the token.
 - `src/media/webp.js`: browser only.
+- `src/editor/view.js`: what the page shows, as plain objects. No DOM, so it
+  stays testable in Node.
+- `src/editor/dom.js`: the only view code that touches the DOM. Post content
+  goes in as text nodes and attributes, never through `innerHTML`.
+- `serve.js`: local server, 127.0.0.1 only, serves `index.html` and `src/`
+  with a strict CSP. Do not loosen the CSP (no inline scripts or styles,
+  no external origins) without a task of its own.
 
 ## Test
 
@@ -31,6 +38,10 @@ There are no dependencies to install. Node 20.11 or newer.
 git clone https://github.com/pablogarcor/js-pablogarcor-web.git ../js-pablogarcor-web   # once
 node --test
 ```
+
+Run the editor with `node serve.js` and open http://localhost:8000.
+CI also type-checks `src/` with `tsc -p jsconfig.json` (JSDoc only, no
+TypeScript files).
 
 `tests/corpus.test.js` reads the real posts from `../js-pablogarcor-web`
 (or `BLOG_DIR`). Any change to `src/markdown/` must keep these green:

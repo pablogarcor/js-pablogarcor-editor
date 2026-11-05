@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor · pablogarcor.com</title>
+  <link rel="stylesheet" href="src/editor/editor.css">
+  <script type="module" src="src/editor/app.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <span class="brand">Editor</span>
+    <label class="button">
+      Abrir post…
+      <input id="open" class="visually-hidden" type="file" accept=".md,.markdown,image/*" multiple>
+    </label>
+    <p id="status" role="status"></p>
+  </header>
+  <main id="post">
+    <div class="empty">
+      <p>Abre un post de tu copia local del blog, por ejemplo <code>content/es/blog/2026/07/31/index.md</code>.</p>
+      <p>Si el post tiene imágenes, selecciónalas junto al <code>.md</code> en el mismo diálogo para verlas.</p>
+      <p>De momento es solo lectura.</p>
+    </div>
+  </main>
+</body>
+</html>
