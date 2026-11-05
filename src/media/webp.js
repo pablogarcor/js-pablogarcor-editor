@@ -12,7 +12,7 @@ import { slugify } from '../hugo/post.js';
 /**
  * @param {Blob} file
  * @param {{ maxWidth?: number, quality?: number }} [opts]
- * @returns {Promise<{ bytes: Uint8Array, width: number, height: number }>}
+ * @returns {Promise<{ bytes: Uint8Array<ArrayBuffer>, width: number, height: number }>}
  */
 export async function toWebp(file, { maxWidth = 1600, quality = 0.82 } = {}) {
   const bitmap = await createImageBitmap(file);

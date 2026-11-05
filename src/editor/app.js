@@ -13,6 +13,7 @@
 import { parseMarkdown } from '../markdown/parse.js';
 import { serializeMarkdown } from '../markdown/serialize.js';
 import { metaEdit, metaOf, newPost, referencedImages, updateMeta, validatePost } from '../hugo/post.js';
+import { imageName, toWebp } from '../media/webp.js';
 import { createEditor } from './editor.js';
 import { createMetaForm } from './meta-form.js';
 import { createToolbar } from './toolbar.js';
@@ -30,6 +31,12 @@ const sourceView = byId('source');
 
 /** blob: URLs of the images of the open post, revoked when another post is opened. */
 let imageUrls = new Map();
+/**
+ * Images added in the editor, already converted to WebP, by file name. They
+ * will be uploaded with the post; until then they only live here.
+ * @type {Map<string, Uint8Array>}
+ */
+let newImages = new Map();
 /** What the open post looked like on disk, or null for a new post. */
 let opened = /** @type {{ name: string, source: string } | null} */ (null);
 let dirty = false;
@@ -52,6 +59,45 @@ const editor = createEditor(surface, {
   },
   onSelectionChange: (state) => toolbar.update(state),
   onLinkRequest: () => toolbar.openLink(),
+  onImages: (files, at) => {
+    addImages(files, at).catch((err) => setStatus(`No se ha podido añadir la imagen: ${err instanceof Error ? err.message : String(err)}`, 'error'));
+  },
+  onNotice: (message) => setStatus(message, 'error'),
+});
+
+/**
+ * Converts images to WebP, names them after the post's slug (as the blog
+ * does: hazme-casio.webp, wireguard-openwrt-2.webp) and inserts them.
+ * @param {File[]} files
+ * @param {import('../model/editing.js').Selection | null} at
+ */
+async function addImages(files, at) {
+  const images = files.filter((f) => f.type.startsWith('image/'));
+  if (!images.length) return;
+  const doc = editor.getDocument();
+  const slug = String(metaOf(doc).slug ?? '');
+  const taken = [...imageUrls.keys(), ...referencedImages(doc).map((i) => localName(i.src))];
+  /** @type {{ src: string, alt: string }[]} */
+  const added = [];
+  for (const [i, file] of images.entries()) {
+    setStatus(`Convirtiendo ${file.name} a WebP${images.length > 1 ? ` (${i + 1} de ${images.length})` : ''}…`);
+    const { bytes, width, height } = await toWebp(file);
+    const name = imageName(slug || file.name, taken);
+    taken.push(name);
+    newImages.set(name, bytes);
+    imageUrls.set(name, URL.createObjectURL(new Blob([bytes], { type: 'image/webp' })));
+    added.push({ src: name, alt: '' });
+    console.info(`${file.name} -> ${name}: ${width}x${height}, ${Math.round(bytes.length / 1024)} KB`);
+  }
+  editor.insertImages(added, at);
+  setStatus(`${added.length === 1 ? 'Imagen añadida' : `${added.length} imágenes añadidas`}: ${added.map((a) => a.src).join(', ')}. Escribe el texto alternativo.`);
+}
+
+const imageInput = /** @type {HTMLInputElement} */ (byId('image-input'));
+imageInput.addEventListener('change', () => {
+  const files = [...(imageInput.files ?? [])];
+  imageInput.value = '';
+  addImages(files, null).catch((err) => setStatus(`No se ha podido añadir la imagen: ${err instanceof Error ? err.message : String(err)}`, 'error'));
 });
 
 const metaForm = createMetaForm(document, {
@@ -128,6 +174,7 @@ async function open(files) {
   }
 
   for (const url of imageUrls.values()) URL.revokeObjectURL(url);
+  newImages = new Map();
   imageUrls = new Map(files.filter((f) => f.type.startsWith('image/')).map((f) => [f.name, URL.createObjectURL(f)]));
 
   const doc = parseMarkdown(source);
@@ -153,6 +200,7 @@ openInput.addEventListener('change', () => {
 newButton.addEventListener('click', () => {
   if (!confirmDiscard()) return;
   for (const url of imageUrls.values()) URL.revokeObjectURL(url);
+  newImages = new Map();
   imageUrls = new Map();
   opened = null;
   dirty = false;

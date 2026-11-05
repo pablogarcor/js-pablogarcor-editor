@@ -15,7 +15,7 @@
  * object, so the history does not record an empty step.
  */
 
-import { blockIndex, blocks as make, convertBlock, insertBlock, removeBlock, updateBlock } from './document.js';
+import { blockIndex, blocks as make, convertBlock, insertBlock, removeBlock, touch, updateBlock } from './document.js';
 import { deleteRange, insertText as insertRuns, normalizeRuns, runsLength, splitRuns } from './inline.js';
 
 /**
@@ -478,4 +478,90 @@ function joinForward(doc, pos) {
   if (following.type === 'list' && following.items.length > 1) next = updateBlock(next, following.id, dropLeadingItems(following, 1));
   else next = removeBlock(next, following.id);
   return { doc: next, selection: caret(pos) };
+}
+
+/**
+ * The end of the last text field of a block (its last item, in a list).
+ * @param {Block} block
+ * @returns {Pos}
+ */
+function endOfBlock(block) {
+  if (block.type === 'list') {
+    const item = block.items.length - 1;
+    return { block: block.id, item, offset: runsLength(block.items[item].runs) };
+  }
+  return { block: block.id, item: 0, offset: 'runs' in block ? runsLength(block.runs) : 0 };
+}
+
+/**
+ * Pasting blocks (converted from HTML).
+ *  - One paragraph: its text goes in at the caret, with its marks.
+ *  - Several blocks, in a paragraph, heading or quote: the block is split at
+ *    the caret; a pasted paragraph at the start joins the text before the
+ *    caret, and the text after the caret joins a pasted paragraph at the end.
+ *  - In a list: the blocks go after the list.
+ * The caret ends after the pasted content.
+ * @param {Doc} doc
+ * @param {Selection} selection
+ * @param {Block[]} pasted
+ * @returns {EditResult}
+ */
+export function insertBlocks(doc, selection, pasted) {
+  if (!pasted.length) return { doc, selection };
+  const cleared = deleteSelection(doc, selection);
+  const d = cleared.doc;
+  const pos = cleared.selection.focus;
+  const index = blockIndex(d, pos.block);
+  const block = d.blocks[index];
+
+  if (pasted.length === 1 && pasted[0].type === 'paragraph') {
+    const added = pasted[0].runs;
+    const [left, right] = splitRuns(fieldRuns(d, pos.block, pos.item), pos.offset);
+    return { doc: setField(d, pos.block, pos.item, [...left, ...added, ...right]), selection: caret({ ...pos, offset: pos.offset + runsLength(added) }) };
+  }
+
+  if (block.type === 'list') {
+    let next = d;
+    pasted.forEach((b, i) => (next = insertBlock(next, index + 1 + i, b)));
+    const last = pasted[pasted.length - 1];
+    if (isTextBlock(last)) return { doc: next, selection: caret(endOfBlock(last)) };
+    const paragraph = make.paragraph();
+    next = insertBlock(next, index + 1 + pasted.length, paragraph);
+    return { doc: next, selection: caret({ block: paragraph.id, item: 0, offset: 0 }) };
+  }
+
+  const text = /** @type {import('./document.js').ParagraphBlock | import('./document.js').HeadingBlock | import('./document.js').QuoteBlock} */ (block);
+  const [left, right] = splitRuns(text.runs, pos.offset);
+  /** @type {Block[]} */
+  const seq = [...pasted];
+  /** @type {Block | null} */
+  let head = null;
+  if (left.length) {
+    const first = seq[0];
+    const joined = first.type === 'paragraph' && seq.length > 1 ? [...left, ...first.runs] : left;
+    if (joined !== left) seq.shift();
+    head = touch({ ...text, runs: fit(text, joined) });
+  }
+  const last = seq[seq.length - 1];
+  /** @type {Block | null} */
+  let tail = null;
+  /** @type {Pos} */
+  let end;
+  if (last.type === 'paragraph' && right.length) {
+    const merged = make.paragraph([...last.runs, ...right]);
+    seq[seq.length - 1] = merged;
+    end = { block: merged.id, item: 0, offset: runsLength(last.runs) };
+  } else {
+    if (right.length) {
+      tail = text.type === 'heading' ? make.heading(text.level, right) : text.type === 'quote' ? make.quote(right) : make.paragraph(right);
+    }
+    if (isTextBlock(last)) end = endOfBlock(last);
+    else {
+      if (!tail) tail = make.paragraph();
+      end = { block: tail.id, item: 0, offset: 0 };
+    }
+  }
+  const replacement = [...(head ? [head] : []), ...seq, ...(tail ? [tail] : [])];
+  if (block.sep !== undefined && replacement[0].sep === undefined) replacement[0] = { ...replacement[0], sep: block.sep };
+  return { doc: { ...d, blocks: [...d.blocks.slice(0, index), ...replacement, ...d.blocks.slice(index + 1)] }, selection: caret(end) };
 }

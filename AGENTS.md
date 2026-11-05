@@ -30,6 +30,9 @@ editor that publishes posts to pablogarcor/js-pablogarcor-web.
 - `src/model/formatting.js`: toolbar commands (marks, links, block type,
   inserting and removing blocks), same shape as editing.js. Link targets go
   through `normalizeHref`: never accept `javascript:` or `data:` URLs.
+- `src/model/from-html.js`: pasted HTML -> blocks over a minimal node
+  interface (tested with a fake tree). Pasted HTML never reaches the page as
+  HTML; links go through `normalizeHref`; images are dropped and reported.
 - `src/editor/selection.js`: DOM points <-> model positions. Uses only
   nodeType, nodeName, childNodes, parentNode, data and attributes, so it is
   tested on a fake tree. Relies on the markers view.js puts in the DOM
