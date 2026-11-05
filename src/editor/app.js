@@ -56,7 +56,7 @@ function setStatus(message, kind = 'info') {
 let pending = 0;
 function refresh() {
   const doc = editor.getDocument();
-  const parts = [opened ? opened.name : 'Post nuevo', `${doc.blocks.length} bloques`];
+  const parts = [opened ? opened.name : 'Post nuevo', `${doc.blocks.length} ${doc.blocks.length === 1 ? 'bloque' : 'bloques'}`];
   const raw = doc.blocks.filter((b) => b.type === 'raw').length;
   if (raw) parts.push(`${raw} sin editar`);
   parts.push(dirty ? 'con cambios' : 'sin cambios');

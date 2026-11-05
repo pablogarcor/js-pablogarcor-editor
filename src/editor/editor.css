@@ -146,8 +146,14 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
 [hidden] { display: none !important; }
 
 /* Editing surface */
-#editor { outline: none; caret-color: var(--accent); min-height: 40vh; }
-#editor:focus-visible { box-shadow: -1rem 0 0 -0.9rem var(--accent); }
+#editor { outline: none; caret-color: var(--accent); min-height: 12rem; cursor: text; }
+/* A post with only one empty paragraph shows where to write. */
+#editor > p.block:only-child:has(> br[data-filler]:only-child)::before {
+  content: "Empieza a escribir…";
+  color: var(--muted);
+  pointer-events: none;
+  position: absolute;
+}
 #editor [contenteditable="false"] { cursor: default; }
 #editor .block-image img, #editor [data-atom] { user-select: none; }
 
