@@ -60,11 +60,12 @@ export function comparePos(doc, a, b) {
 }
 
 /**
+ * The two ends of a selection, in document order.
  * @param {Doc} doc
  * @param {Selection} sel
  * @returns {[Pos, Pos]}
  */
-function ordered(doc, sel) {
+export function ordered(doc, sel) {
   return comparePos(doc, sel.anchor, sel.focus) <= 0 ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
 }
 
@@ -179,17 +180,19 @@ export function deleteSelection(doc, selection) {
 
 /**
  * Typing. Replaces the selection; the new text takes the marks of the
- * character before the caret (see marksAt).
+ * character before the caret (see marksAt), unless `marks` says otherwise
+ * (after Ctrl+B with nothing selected, for instance).
  * @param {Doc} doc
  * @param {Selection} selection
  * @param {string} text
+ * @param {import('./inline.js').Marks} [marks]
  * @returns {EditResult}
  */
-export function insertText(doc, selection, text) {
+export function insertText(doc, selection, text, marks) {
   const cleared = deleteSelection(doc, selection);
   if (text === '') return cleared;
   const pos = cleared.selection.focus;
-  const runs = insertRuns(fieldRuns(cleared.doc, pos.block, pos.item), pos.offset, text);
+  const runs = insertRuns(fieldRuns(cleared.doc, pos.block, pos.item), pos.offset, text, marks);
   return {
     doc: setField(cleared.doc, pos.block, pos.item, runs),
     selection: caret({ ...pos, offset: pos.offset + text.length }),

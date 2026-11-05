@@ -167,3 +167,69 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Toolbar */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; flex-basis: 100%; }
+.toolbar .group { display: inline-flex; gap: 0.25rem; }
+.toolbar select, .tool {
+  font: inherit;
+  color: inherit;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+.tool { cursor: pointer; min-width: 2rem; }
+.tool:hover:not(:disabled) { border-color: var(--muted); }
+.tool[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.tool:disabled { opacity: 0.4; cursor: default; }
+.tool code { font-size: 0.85em; }
+
+.link-panel { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex-basis: 100%; }
+.link-panel input {
+  flex: 1 1 16rem;
+  font: inherit;
+  color: inherit;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.error { color: var(--danger); }
+button.button { font: inherit; color: inherit; }
+
+/* Blocks that are not text: their controls */
+.block-tools { display: flex; align-items: center; gap: 0.5rem; margin: 0.3rem 0; font-size: 0.85rem; }
+.block-tools .grow { flex: 1; }
+.block-tools input, .block textarea {
+  font: inherit;
+  color: inherit;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.block textarea {
+  display: block;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.88em;
+  line-height: 1.5;
+  resize: vertical;
+  field-sizing: content;
+}
+.block-remove {
+  margin-left: auto;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.block-remove:hover { color: var(--danger); border-color: var(--line); }
+#editor div.block-code { margin: 1rem 0; padding: 0.4rem 0.6rem 0.6rem; background: var(--panel); border-radius: 8px; white-space: normal; }
+#editor div.block-hr { white-space: normal; }
+#editor div.block-hr hr { margin: 1rem 0 0.2rem; }

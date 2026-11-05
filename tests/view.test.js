@@ -130,3 +130,28 @@ test('every post of the blog renders, and only with allowed tags', { skip: !exis
     assert.doesNotThrow(() => toDom(tree, fakeDocument()), file);
   }
 });
+
+test('editable view: blocks that are not text get controls and a remove button', () => {
+  const doc = parseMarkdown('```js\nlet a\nlet b\n```\n\n![Alt](a.webp)\n\n---\n\n| t |\n| - |\n');
+  const [code, image, hr, raw] = doc.blocks.map((b) => renderBlock(b, { editable: true }));
+  const find = (node, pred) => {
+    if (typeof node === 'string') return null;
+    if (pred(node)) return node;
+    for (const c of node.children ?? []) {
+      const f = find(c, pred);
+      if (f) return f;
+    }
+    return null;
+  };
+  const control = (node, name) => find(node, (n) => n.attrs?.['data-control'] === name);
+  const remove = (node) => find(node, (n) => n.attrs?.['data-action'] === 'remove');
+
+  assert.equal(code.attrs.contenteditable, 'false');
+  assert.equal(control(code, 'info').attrs.value, 'js');
+  assert.deepEqual(control(code, 'text').children, ['let a\nlet b']);
+  assert.equal(control(code, 'text').attrs.rows, '2');
+  assert.equal(control(image, 'alt').attrs.value, 'Alt');
+  assert.deepEqual(control(raw, 'source').children, ['| t |\n| - |']);
+  for (const node of [code, image, hr, raw]) assert.ok(remove(node), node.attrs.class);
+  for (const node of [code, image, hr, raw]) assert.doesNotThrow(() => toDom(node, fakeDocument()));
+});

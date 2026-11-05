@@ -50,9 +50,25 @@ Arranca con `node serve.js`, abre http://localhost:8000 y despliega el panel **M
 - [ ] Pega texto con formato desde una web: entra como texto plano, sin HTML.
 - [ ] Arrastra texto o un fichero sobre el editor: no pasa nada (de momento).
 
+## Barra de herramientas
+
+- [ ] Selecciona texto y pulsa N (o Ctrl+B): queda en negrita y el botón se marca. Otra vez: se quita. Igual con K (Ctrl+I) y `</>` (Ctrl+E).
+- [ ] Sin seleccionar nada, Ctrl+B, escribe, Ctrl+B, escribe: solo lo de en medio sale en negrita.
+- [ ] Selecciona texto de dos párrafos y ponlo en cursiva: se aplica a las dos partes.
+- [ ] Ctrl+K con texto seleccionado abre el panel de enlace. `javascript:alert(1)` da error; `ejemplo.com` se guarda como `https://ejemplo.com`. Enter aplica, Escape cancela y devuelve el cursor al texto.
+- [ ] Con el cursor dentro de un enlace, Ctrl+K muestra su dirección y permite cambiarla o quitarla.
+- [ ] Ctrl+K sin selección y fuera de un enlace avisa en la barra de estado.
+- [ ] El selector de tipo refleja el bloque del cursor. Cambiar a Título 2, Cita, Lista y Lista numerada funciona; elegir el mismo tipo otra vez lo devuelve a párrafo.
+- [ ] Selecciona tres párrafos y elige Lista: queda una sola lista de tres elementos.
+- [ ] En una lista de cuatro elementos, selecciona el segundo y el tercero y elige Párrafo: la lista se parte en dos y la segunda mantiene su numeración.
+- [ ] Separador y Bloque de código se insertan después del bloque del cursor; el bloque de código recibe el foco.
+- [ ] En un bloque de código, escribe varias líneas (Enter hace salto de línea, no un bloque nuevo) y un lenguaje. El Markdown lo refleja y el foco no salta.
+- [ ] En una imagen, cambia el texto alternativo. Ctrl+Z dentro del campo deshace en el campo; fuera, deshace el cambio entero.
+- [ ] El botón × elimina imágenes, separadores, bloques de código y bloques sin editar. Ctrl+Z los recupera.
+- [ ] Los botones ↶ ↷ deshacen y rehacen, y se desactivan cuando no hay nada que deshacer o rehacer.
+
 ## Resto
 
-- [ ] Las imágenes, los bloques de código y los bloques «Markdown sin editar» no se pueden modificar.
 - [ ] **Nuevo post** con cambios pendientes pregunta antes de descartarlos.
 - [ ] Recarga con cambios: el navegador avisa antes de salir.
 - [ ] En la consola del navegador no hay errores, tampoco de CSP.
