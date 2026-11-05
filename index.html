@@ -57,7 +57,27 @@
       <p>Si el post tiene imágenes, selecciónalas junto al <code>.md</code> en el mismo diálogo para verlas.</p>
       <p>Todavía no se guarda nada: el panel <strong>Markdown</strong> muestra lo que se escribiría.</p>
     </div>
-    <div id="meta" hidden></div>
+    <section id="meta-form" class="meta-form" aria-label="Datos del post" hidden>
+      <input id="meta-title" class="title-input" data-field="title" placeholder="Título del post" aria-label="Título" autocomplete="off">
+      <div class="meta-grid">
+        <label id="meta-lang-label">Idioma
+          <select id="meta-lang">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label>Fecha <input id="meta-date" data-field="date" type="date"></label>
+        <label>Slug <input id="meta-slug" data-field="slug" spellcheck="false" autocomplete="off"></label>
+        <label>translationKey <input id="meta-key" data-field="translationKey" spellcheck="false" autocomplete="off"></label>
+        <label class="wide">Etiquetas <input id="meta-tags" data-field="tags" placeholder="Separadas por comas: Tecnología, Vida Personal" autocomplete="off"></label>
+        <label class="wide">Descripción
+          <textarea id="meta-description" data-field="description" rows="2" placeholder="Una o dos frases para buscadores y redes sociales"></textarea>
+          <span id="meta-count" class="hint"></span>
+        </label>
+      </div>
+      <p id="meta-note" class="hint"></p>
+      <ul id="meta-report" class="report" aria-live="polite"></ul>
+    </section>
     <div id="editor" class="post" aria-label="Contenido del post" hidden></div>
     <details id="source-panel" class="source" hidden>
       <summary>Markdown</summary>

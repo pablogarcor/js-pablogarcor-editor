@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkIdentity, newPost, planPublish, postLocation, postRef, slugify, todayISO, updateMeta, validatePost } from '../src/hugo/post.js';
+import { checkIdentity, metaEdit, metaOf, newPost, parseTags, planPublish, postLocation, postRef, slugify, todayISO, updateMeta, validatePost } from '../src/hugo/post.js';
 import { blocks, insertBlock } from '../src/model/document.js';
 import { text } from '../src/model/inline.js';
 import { serializeMarkdown } from '../src/markdown/serialize.js';
@@ -84,4 +84,45 @@ test('publish plan for an edit can stamp lastmod', () => {
 test('image file names in the blog style', () => {
   assert.equal(imageName('IMG_2041.HEIC'), 'img-2041.webp');
   assert.equal(imageName('Rear label of my LG OLED65CX5LB', ['rear-label-of-my-lg-oled65cx5lb.webp']), 'rear-label-of-my-lg-oled65cx5lb-2.webp');
+});
+
+test('tags typed as text', () => {
+  assert.deepEqual(parseTags(' Tecnología,  Vida   Personal ,,tecnologia, Reflexión '), ['Tecnología', 'Vida Personal', 'Reflexión']);
+  assert.deepEqual(parseTags(''), []);
+});
+
+test('the slug follows the title, and translationKey the slug, until typed by hand', () => {
+  const both = { slugFollowsTitle: true, keyFollowsSlug: true };
+  assert.deepEqual(metaEdit('title', '¿Qué es Hugo?', both), { title: '¿Qué es Hugo?', slug: 'que-es-hugo', translationKey: 'que-es-hugo' });
+  assert.deepEqual(metaEdit('title', 'Otro', { slugFollowsTitle: false, keyFollowsSlug: true }), { title: 'Otro' });
+  assert.deepEqual(metaEdit('title', 'Otro', { slugFollowsTitle: true, keyFollowsSlug: false }), { title: 'Otro', slug: 'otro' });
+  assert.deepEqual(metaEdit('slug', 'corto', both), { slug: 'corto', translationKey: 'corto' });
+  assert.deepEqual(metaEdit('tags', 'a, b', both), { tags: ['a', 'b'] });
+  assert.deepEqual(metaEdit('description', 'x', both), { description: 'x' });
+});
+
+test('editing the metadata of a new post writes the blog front matter', () => {
+  let doc = newPost({ lang: 'es', title: '', date: '2026-11-05' });
+  const follow = { slugFollowsTitle: true, keyFollowsSlug: true };
+  for (const [field, value] of [['title', 'Mi primer post'], ['tags', 'Hugo, Blog'], ['description', 'Una prueba.']]) {
+    doc = updateMeta(doc, metaEdit(field, value, follow));
+  }
+  assert.deepEqual(metaOf(doc), {
+    title: 'Mi primer post',
+    date: '2026-11-05',
+    slug: 'mi-primer-post',
+    translationKey: 'mi-primer-post',
+    author: 'Pablo Garcia Ortega',
+    tags: ['Hugo', 'Blog'],
+    description: 'Una prueba.',
+  });
+  assert.match(serializeMarkdown(doc), /^---\ntitle: "Mi primer post"\ndate: 2026-11-05\nslug: "mi-primer-post"\ntranslationKey: "mi-primer-post"\nauthor: "Pablo Garcia Ortega"\ntags: \["Hugo", "Blog"\]\ndescription: "Una prueba."\n---\n/);
+});
+
+test('a post with only empty paragraphs is empty', () => {
+  const base = newPost({ lang: 'es', title: 'T', date: '2026-11-05', tags: ['a'], description: 'd' });
+  const empty = insertBlock(base, 0, blocks.paragraph());
+  assert.ok(validatePost(empty).errors.includes('El post está vacío.'));
+  const full = insertBlock(base, 0, blocks.paragraph([text('Hola')]));
+  assert.ok(!validatePost(full).errors.includes('El post está vacío.'));
 });

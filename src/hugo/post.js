@@ -73,6 +73,47 @@ export function newPost({ lang, title, slug = slugify(title), date = todayISO(),
 }
 
 /**
+ * Tags typed as text: comma separated, trimmed, without empties or repeats
+ * (repeats compared ignoring case and accents; the first spelling wins).
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function parseTags(text) {
+  const seen = new Set();
+  /** @type {string[]} */
+  const out = [];
+  for (const raw of text.split(',')) {
+    const tag = raw.trim().replace(/\s+/g, ' ');
+    const key = slugify(tag);
+    if (!tag || seen.has(key)) continue;
+    seen.add(key);
+    out.push(tag);
+  }
+  return out;
+}
+
+/**
+ * Front matter changes for one edit in the metadata form. While the author
+ * has not typed a slug of their own, it follows the title; translationKey
+ * follows the slug until it is typed by hand. Published posts never change
+ * slug or translationKey here.
+ * @param {string} field title, date, slug, translationKey, tags (as text) or description
+ * @param {string} value as typed
+ * @param {{ slugFollowsTitle: boolean, keyFollowsSlug: boolean }} follow
+ * @returns {Record<string, any>}
+ */
+export function metaEdit(field, value, follow) {
+  if (field === 'tags') return { tags: parseTags(value) };
+  if (field === 'title') {
+    if (!follow.slugFollowsTitle) return { title: value };
+    const slug = slugify(value);
+    return follow.keyFollowsSlug ? { title: value, slug, translationKey: slug } : { title: value, slug };
+  }
+  if (field === 'slug') return follow.keyFollowsSlug ? { slug: value, translationKey: value } : { slug: value };
+  return { [field]: value };
+}
+
+/**
  * Updates front matter fields, keeping the original lines of the others.
  * @param {Doc} doc
  * @param {Record<string, any>} changes
@@ -212,7 +253,8 @@ export function validatePost(doc, { images = [], publishedSlug } = {}) {
   const description = String(meta.description ?? '');
   if (!description) warnings.push('Falta la descripción (se usa en buscadores y al compartir).');
   else if (description.length > 160) warnings.push(`La descripción tiene ${description.length} caracteres; los buscadores suelen cortar hacia los 160.`);
-  if (doc.blocks.length === 0) errors.push('El post está vacío.');
+  // The editor always keeps one paragraph to type in: empty paragraphs are not content.
+  if (doc.blocks.every((b) => b.type === 'paragraph' && b.runs.length === 0)) errors.push('El post está vacío.');
 
   const available = new Set(images);
   for (const img of referencedImages(doc)) {
