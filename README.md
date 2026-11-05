@@ -170,7 +170,9 @@ Desde el editor, con **Publicar…**:
    - en un post publicado: que esté en `main` tal como lo abriste (si no, toca `git pull` en tu copia del blog), que tenga cambios, y su ruta e idioma, que salen del repo. Se le pone `lastmod` de hoy;
    - solo se suben las imágenes nuevas que el post sigue usando.
 3. **Plan.** Si no hay errores, se muestra exactamente qué se enviará: rama, ficheros con su tamaño, mensaje del commit y título del PR. Si cambias el post después, hay que comprobar otra vez.
-4. **Crear la rama y abrir el PR.** Al terminar aparece el enlace al PR. Si sigues editando y vuelves a publicar, se actualiza la misma rama y el mismo PR. El borrador se queda hasta que lo borres.
+4. **Crear la rama y abrir el PR.** Al terminar aparece el enlace al PR. Si sigues editando y vuelves a publicar, se actualiza la misma rama y el mismo PR.
+
+El borrador recuerda el PR y lo que se envió. En la lista aparece como «publicado en el PR #n», o «cambios sin publicar después del PR #n» si lo has seguido editando. Con GitHub conectado, al mostrar la lista se consultan esos PR: los borradores cuyo PR ya está mergeado y que no tienen cambios posteriores se borran solos, porque su contenido ya está en `main`. Los que tienen cambios posteriores se conservan.
 
 Por debajo:
 
@@ -250,4 +252,3 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 - Ctrl+A y borrar no alcanza una imagen o un bloque de código que esté antes del primer texto o después del último.
 - Añadir imágenes a un post publicado de un solo fichero (`dd/<slug>.md`) exige convertirlo antes en bundle; ahora la comprobación lo impide con un aviso.
 - Abrir para editar un post directamente desde `main`, sin la copia local.
-- Borrar el borrador al hacer merge del PR.

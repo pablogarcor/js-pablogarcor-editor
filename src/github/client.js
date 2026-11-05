@@ -78,6 +78,8 @@ export function createGitHubClient({ token, owner, repo, fetch: doFetch = global
       const list = await request('GET', `/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&base=${encodeURIComponent(base)}`);
       return list[0] ?? null;
     },
+    /** @param {number} number @returns {Promise<{ number: number, html_url: string, state: 'open' | 'closed', merged: boolean } | null>} */
+    getPullRequest: (number) => request('GET', `/pulls/${number}`, { allow404: true }),
     /** @param {{ title: string, head: string, base: string, body: string }} pr @returns {Promise<{ number: number, html_url: string }>} */
     createPullRequest: (pr) => request('POST', '/pulls', { body: pr }),
   };

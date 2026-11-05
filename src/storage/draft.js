@@ -27,7 +27,10 @@ import { serializeMarkdown } from '../markdown/serialize.js';
  *   publishedSlug: string | null,
  *   follow: { slugFollowsTitle: boolean, keyFollowsSlug: boolean },
  *   images: DraftImage[],
+ *   published?: Published | null,
  * }} Draft
+ * @typedef {{ number: number, url: string, branch: string, markdown: string, at: string }} Published
+ *   the pull request the post was last published to, and the Markdown sent
  * @typedef {Omit<Draft, 'updatedAt' | 'title' | 'markdown'> & { doc: Doc }} Session
  */
 
@@ -58,6 +61,27 @@ export function worthSaving(session) {
   if (session.opened) return markdown !== session.opened.source;
   const body = markdown.replace(/^---\n[\s\S]*?\n---\n?/, '').trim();
   return Boolean(String(metaOf(session.doc).title ?? '').trim() || body || session.images.length);
+}
+
+/**
+ * Where a draft stands with its pull request: never published, published
+ * as it is now, or edited after publishing.
+ * @param {Pick<Draft, 'markdown' | 'published'>} draft
+ * @returns {'draft' | 'published' | 'changed'}
+ */
+export function publishState(draft) {
+  if (!draft.published) return 'draft';
+  return draft.published.markdown === draft.markdown ? 'published' : 'changed';
+}
+
+/**
+ * A draft can go once its pull request is merged, unless it was edited
+ * after publishing: those edits are only in the draft.
+ * @param {Pick<Draft, 'markdown' | 'published'>} draft
+ * @param {{ merged: boolean }} pullRequest
+ */
+export function canForget(draft, pullRequest) {
+  return pullRequest.merged && publishState(draft) === 'published';
 }
 
 /**
