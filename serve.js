@@ -8,9 +8,10 @@
  *  - listens on 127.0.0.1 only and refuses requests whose Host is not a
  *    local name (a DNS rebinding page could otherwise read it);
  *  - serves index.html and src/ only: never .git, tests or anything else;
- *  - sends a strict Content-Security-Policy. The editor will hold a GitHub
- *    token, so no script may run unless it comes from this server, and no
- *    inline script or style is allowed.
+ *  - sends a strict Content-Security-Policy. The editor holds a GitHub
+ *    token, so no script may run unless it comes from this server, no
+ *    inline script or style is allowed, and the page can only connect to
+ *    the GitHub API.
  *
  * Plain Node (no DOM types), so it sits outside src/ and the tsc check.
  */
@@ -25,6 +26,8 @@ export const CSP = [
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self' blob:",
+  // The only place the page talks to: the GitHub API, to publish.
+  "connect-src https://api.github.com",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",

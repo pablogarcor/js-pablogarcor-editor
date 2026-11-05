@@ -99,6 +99,22 @@ Arranca con `node serve.js`, abre http://localhost:8000 y despliega el panel **M
 - [ ] **Borrar** pide un segundo clic y lo quita de la lista.
 - [ ] En una ventana privada de Firefox (sin IndexedDB) el editor funciona, sin borradores.
 
+## Publicar
+
+Usa tu token real en un post de prueba y cierra el PR sin hacer merge al terminar (y borra su rama).
+
+- [ ] Tras actualizar `serve.js`, reinicia `node serve.js`: la CSP nueva permite conectar con `api.github.com`. Sin reiniciar, conectar dice «No se puede conectar con GitHub».
+- [ ] **Publicar…** con un token mal copiado: «GitHub no acepta el token». El campo queda vacío.
+- [ ] Con el token bueno y sin marcar «Recordarlo», recarga: pide el token otra vez. Marcándolo, recarga: sigue conectado. Cierra la pestaña y vuelve: lo pide.
+- [ ] Post nuevo sin título: la comprobación lo dice y no ofrece publicar.
+- [ ] Post nuevo con el slug de uno existente: error de slug repetido.
+- [ ] Post nuevo completo con una imagen: el plan muestra la rama `post/es/<slug>`, el `index.md` y la imagen en la carpeta del día. **Crear la rama y abrir el PR** da el enlace; en GitHub, el PR tiene un solo commit con los dos ficheros y la vista previa de Azure muestra el post con su imagen.
+- [ ] Cambia el post después de comprobar y pulsa publicar: pide comprobar otra vez. Comprueba y publica: el mismo PR recibe un segundo commit.
+- [ ] Abre un post publicado de tu copia del blog, cambia una frase y publica: el PR solo cambia esa frase y añade o cambia `lastmod`.
+- [ ] Con tu copia del blog desactualizada respecto a `main`, abrir y publicar un post dice que hagas `git pull`.
+- [ ] **Desconectar** vacía el token; recargar no lo recupera.
+- [ ] En DevTools → Application: el token no está en Local Storage ni en IndexedDB.
+
 ## Resto
 
 - [ ] Si recargas justo después de escribir (antes de que diga «borrador guardado»), el navegador avisa antes de salir.

@@ -8,7 +8,8 @@
  *
  * Every change is saved as a draft in this browser (IndexedDB) a moment
  * later, images included, so closing the tab or switching posts loses
- * nothing. Nothing is uploaded yet.
+ * nothing. "Publicar…" sends the post to a branch of the blog repository
+ * and opens a pull request (publish-panel.js).
  *
  * To open a post, the user picks its .md file and, optionally, its images in
  * the same dialog. Images are shown through blob: URLs.
@@ -22,6 +23,7 @@ import { describeWhen, fromDraft, toDraft, worthSaving } from '../storage/draft.
 import { deleteDraft, listDrafts, saveDraft } from '../storage/drafts.js';
 import { createEditor } from './editor.js';
 import { createMetaForm } from './meta-form.js';
+import { createPublishPanel } from './publish-panel.js';
 import { createToolbar } from './toolbar.js';
 
 /**
@@ -199,6 +201,8 @@ async function startSession(session, draft) {
   dirty = opened ? serializeMarkdown(doc) !== opened.source : worthSaving({ ...session, doc });
   empty.hidden = true;
   draftsPanel.hidden = true;
+  publishPanel.hide();
+  publishButton.hidden = false;
   metaForm.show(opened ? 'published' : 'new');
   surface.hidden = false;
   sourcePanel.hidden = false;
@@ -275,6 +279,19 @@ function draftItem(draft) {
   li.append(info, openButton, removeButton);
   return li;
 }
+
+const publishButton = byId('publish');
+const publishPanel = createPublishPanel(document, {
+  current: () => ({
+    doc: editor.getDocument(),
+    lang,
+    original: opened ? opened.source : null,
+    images: [...images].filter(([, img]) => img.isNew).map(([name, img]) => ({ name, blob: img.blob })),
+  }),
+  beforeCheck: saveNow,
+  setStatus,
+});
+publishButton.addEventListener('click', () => publishPanel.toggle());
 
 draftsButton.addEventListener('click', () => {
   if (draftsPanel.hidden) void showDrafts();

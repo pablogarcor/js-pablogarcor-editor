@@ -12,6 +12,7 @@ JavaScript puro con módulos ES. Sin dependencias, sin `package.json`, sin paso 
 | Markdown ⇄ modelo, con ida y vuelta sin pérdidas | Hecho, probado contra los 23 posts del blog |
 | Convenciones de Hugo (rutas, front matter, slug, traducciones) | Hecho |
 | Publicación en GitHub (rama + commit único + PR) | Hecho, testeado con una API falsa |
+| Pantalla de publicación: token, comprobaciones contra `main`, plan y PR | Hecho; `preparePublish` y la conexión se testean en Node, la pantalla con una API simulada en el navegador |
 | Conversión de imágenes a WebP en el navegador | Hecho (solo navegador, sin test) |
 | Servidor local (`serve.js`) con CSP estricta | Hecho y testeado |
 | Vista (`index.html`, `src/editor/`) | Hecho; la vista se testea en Node contra los posts reales |
@@ -46,7 +47,8 @@ src/
 │   └── post.js     Lo único que conoce las convenciones del blog.
 ├── github/
 │   ├── client.js   Cliente REST mínimo sobre fetch.
-│   └── publish.js  Rama + commit con todos los ficheros + PR contra main.
+│   ├── publish.js  Rama + commit con todos los ficheros + PR contra main.
+│   └── connection.js  El token (memoria o sessionStorage) y el cliente del blog.
 ├── media/
 │   └── webp.js     Imagen → WebP con OffscreenCanvas.
 ├── storage/
@@ -60,6 +62,7 @@ src/
     ├── editor.js     La superficie editable: eventos → comandos → repintado.
     ├── toolbar.js    Barra de herramientas y panel de enlaces.
     ├── meta-form.js  Formulario del front matter y avisos de validatePost.
+    ├── publish-panel.js  Pantalla de publicación.
     ├── app.js        Arranque de la página: nuevo, abrir, borradores, imágenes.
     └── editor.css
 index.html          La página del editor.
@@ -158,6 +161,19 @@ El contenido de los posts llega a la página solo como texto (`textContent`, `se
 
 ## Publicar
 
+Desde el editor, con **Publicar…**:
+
+1. **Conectar.** Pega el token (ver «Token» más abajo). Se comprueba contra el repo antes de aceptarlo y el campo se vacía. Vive en la memoria de la pestaña; si marcas «Recordarlo hasta cerrar la pestaña», también en `sessionStorage`. Nunca en `localStorage`.
+2. **Comprobar.** El editor guarda el borrador, lee los posts de `main` y llama a `preparePublish`, que junta:
+   - los errores y avisos de `validatePost` (título, fecha, slug, imágenes, texto alternativo…);
+   - los de `checkIdentity` contra los posts de `main` (slug repetido, translationKey repetido, traducción enlazada);
+   - en un post publicado: que esté en `main` tal como lo abriste (si no, toca `git pull` en tu copia del blog), que tenga cambios, y su ruta e idioma, que salen del repo. Se le pone `lastmod` de hoy;
+   - solo se suben las imágenes nuevas que el post sigue usando.
+3. **Plan.** Si no hay errores, se muestra exactamente qué se enviará: rama, ficheros con su tamaño, mensaje del commit y título del PR. Si cambias el post después, hay que comprobar otra vez.
+4. **Crear la rama y abrir el PR.** Al terminar aparece el enlace al PR. Si sigues editando y vuelves a publicar, se actualiza la misma rama y el mismo PR. El borrador se queda hasta que lo borres.
+
+Por debajo:
+
 1. El editor crea o actualiza la rama `post/<idioma>/<slug>` a partir de `main`.
 2. Sube el `index.md` y las imágenes en **un solo commit**, usando la API de Git Data.
 3. Abre un PR contra `main` o reutiliza el que ya exista.
@@ -228,8 +244,10 @@ El workflow `.github/workflows/test.yml` ejecuta los tests contra el blog en cad
 - Los enlaces de referencia (`[texto][id]`) no se interpretan.
 - `src/media/webp.js` depende de `OffscreenCanvas` y de que el navegador sepa codificar WebP. Chrome y Firefox pueden; si el navegador no puede, lo avisa con un error.
 
-## Siguiente fase
+## Ideas pendientes
 
-- Pantalla de publicación:
-  - muestra los errores y avisos de `validatePost` y `checkIdentity`;
-  - llama a `planPublish` y después a `publishFiles`.
+- Atajos de Markdown al escribir (`## ` al principio de un párrafo lo convierte en título, `* ` en lista, `> ` en cita).
+- Ctrl+A y borrar no alcanza una imagen o un bloque de código que esté antes del primer texto o después del último.
+- Añadir imágenes a un post publicado de un solo fichero (`dd/<slug>.md`) exige convertirlo antes en bundle; ahora la comprobación lo impide con un aviso.
+- Abrir para editar un post directamente desde `main`, sin la copia local.
+- Borrar el borrador al hacer merge del PR.

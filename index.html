@@ -12,6 +12,7 @@
     <span class="brand">Editor</span>
     <button id="new" class="button" type="button">Nuevo post</button>
     <button id="drafts" class="button" type="button">Borradores</button>
+    <button id="publish" class="button" type="button" hidden>Publicar…</button>
     <label class="button">
       Abrir post…
       <input id="open" class="visually-hidden" type="file" accept=".md,.markdown,image/*" multiple>
@@ -57,6 +58,29 @@
     </div>
   </header>
   <main id="post">
+    <section id="publish-panel" class="publish" aria-label="Publicar" hidden>
+      <h2>Publicar</h2>
+      <div id="connect-form">
+        <p class="hint">Hace falta un token <em>fine-grained</em> con acceso solo a <span id="repo-name"></span> y permisos Contents y Pull requests: Read and write (sección «Token» del README). Se guarda en la memoria de esta pestaña, nunca en disco.</p>
+        <label class="field">Token
+          <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+        </label>
+        <label class="check"><input id="token-remember" type="checkbox"> Recordarlo hasta cerrar la pestaña</label>
+        <button id="connect" class="button" type="button">Conectar</button>
+        <span id="connect-error" class="error" role="alert"></span>
+      </div>
+      <div id="publish-connected" hidden>
+        <p class="hint">Conectado a GitHub. <button id="disconnect" class="button" type="button">Desconectar</button></p>
+        <button id="check" class="button" type="button">Comprobar de nuevo</button>
+        <ul id="publish-report" class="report" aria-live="polite"></ul>
+        <div id="publish-plan" hidden>
+          <p id="plan-summary"></p>
+          <ul id="plan-files" class="report"></ul>
+          <button id="publish-go" class="button primary" type="button">Crear la rama y abrir el PR</button>
+        </div>
+        <p id="publish-result" role="status"></p>
+      </div>
+    </section>
     <section id="drafts-panel" class="drafts" aria-label="Borradores" hidden>
       <h2>Borradores</h2>
       <p class="hint">Se guardan solos en este navegador mientras escribes, con sus imágenes.</p>
